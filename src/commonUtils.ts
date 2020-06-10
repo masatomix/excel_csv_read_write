@@ -1,10 +1,13 @@
-
+import path from 'path'
 import fs from 'fs'
 import iconv from 'iconv-lite'
 import csv from 'csvtojson'
 
-const XlsxPopulate = require('xlsx-populate')
+import { getLogger } from './logger'
 
+const logger = getLogger('main')
+
+const XlsxPopulate = require('xlsx-populate')
 
 /**
  * Excelファイルを読み込み、各行をデータとして配列で返すメソッド。
@@ -54,6 +57,108 @@ export const csv2json = (filePath: string): Promise<Array<any>> => {
   })
 }
 
+
+
+/**
+ * 引数のJSON配列を、指定したテンプレートを用いて、指定したファイルに出力します。
+ * @param instances JSON配列
+ * @param outputFullPath 出力Excelのパス
+ * @param templateFullPath 元にするテンプレートExcelのパス
+ * @param sheetName テンプレートExcelのシート名
+ * @param applyStyles 出力時のExcelを書式フォーマットしたい場合に使用する。
+ */
+export const internalSave2Excel = async (
+  instances: any[],
+  outputFullPath: string,
+  templateFullPath: string,
+  sheetName: string,
+  applyStyles?: (instances: any[], workbook: any, sheetName: string) => void,
+): Promise<string> => {
+  logger.debug(`template path: ${templateFullPath}`)
+  // console.log(instances[0])
+  // console.table(instances)
+
+  let headings: string[] = []
+  let workbook: any
+  if (templateFullPath !== '') {
+    // 指定された場合は、一行目の文字列群を使ってプロパティを作成する
+    workbook = await XlsxPopulate.fromFileAsync(templateFullPath)
+    headings = getHeaders(workbook, sheetName)
+  } else {
+    // templateが指定されない場合は、空ファイルをつくり、オブジェクトのプロパティでダンプする。
+    workbook = await XlsxPopulate.fromBlankAsync()
+    if (instances.length > 0) {
+      headings = Object.keys(instances[0])
+    }
+  }
+
+  if (instances.length > 0) {
+    const csvArrays: any[][] = createCsvArrays(headings, instances)
+    // console.table(csvArrays)
+    const rowCount = instances.length
+    const columnCount = headings.length
+    const sheet = workbook.sheet(sheetName)
+
+    if (sheet.usedRange()) {
+      sheet.usedRange().clear() // Excel上のデータを削除して。
+    }
+    sheet.cell('A1').value(csvArrays)
+
+    // データがあるところには罫線を引く(細いヤツ)
+    const startCell = sheet.cell('A1')
+    const endCell = startCell.relativeCell(rowCount, columnCount - 1)
+
+    sheet.range(startCell, endCell).style('border', {
+      top: { style: 'hair' },
+      left: { style: 'hair' },
+      bottom: { style: 'hair' },
+      right: { style: 'hair' },
+    })
+
+    // よくある整形パタン。
+    // sheet.range(`C2:C${rowCount + 1}`).style('numberFormat', '@') // 書式: 文字(コレをやらないと、見かけ上文字だが、F2で抜けると数字になっちゃう)
+    // sheet.range(`E2:F${rowCount + 1}`).style('numberFormat', 'yyyy/mm/dd') // 書式: 日付
+    // sheet.range(`H2:H${rowCount + 1}`).style('numberFormat', 'yyyy/mm/dd hh:mm') // 書式: 日付+時刻
+
+    if (applyStyles) {
+      applyStyles(instances, workbook, sheetName)
+    }
+  }
+
+  logger.debug(outputFullPath)
+  await workbook.toFileAsync(outputFullPath)
+
+  return toFullPath(outputFullPath)
+}
+
+const toFullPath = (str: string) => {
+  let ret = ''
+  if (path.isAbsolute(str)) {
+    ret = str
+  } else {
+    ret = path.join(path.resolve(''), str)
+  }
+  return ret
+}
+
+// 自前実装
+function createCsvArrays(headings: string[], instances: any[]) {
+  const csvArrays: any[][] = instances.map((instance: any): any[] => {
+    // console.log(instance)
+    const csvArray = headings.reduce((box: any[], header: string): any[] => {
+      // console.log(`${instance[header]}: ${instance[header] instanceof Object}`)
+      if (instance[header] instanceof Object) {
+        box.push(JSON.stringify(instance[header]))
+      } else {
+        box.push(instance[header])
+      }
+      return box
+    }, [])
+    return csvArray
+  })
+  csvArrays.unshift(headings)
+  return csvArrays
+}
 
 /**
  * Excelのシリアル値を、Dateへ変換します。
