@@ -15,7 +15,7 @@ const XlsxPopulate = require('xlsx-populate')
  * @param sheet シート名
  * @param format_func フォーマット関数。instanceは各行データが入ってくるので、任意に整形して返せばよい
  */
-export const xlsx2json = async (
+export const excel2json = async (
   inputFullPath: string,
   sheetName = 'Sheet1',
   format_func?: (instance: any) => any,
@@ -39,7 +39,6 @@ export const xlsx2json = async (
   return instances
 }
 
-
 /**
  * 指定したパスのcsvファイルをロードして、JSONオブジェクトとしてparseする。
  * 全行読み込んだら完了する Promise を返す。
@@ -57,7 +56,23 @@ export const csv2json = (filePath: string): Promise<Array<any>> => {
   })
 }
 
-
+/**
+ * 引数のJSON配列を、指定したテンプレートを用いて、指定したファイルに出力します。
+ * @param instances JSON配列
+ * @param outputFullPath 出力Excelのパス
+ * @param templateFullPath 元にするテンプレートExcelのパス
+ * @param sheetName テンプレートExcelのシート名
+ * @param applyStyles 出力時のExcelを書式フォーマットしたい場合に使用する。
+ */
+export const json2excel = async (
+  instances: any[],
+  outputFullPath: string,
+  templateFullPath = '',
+  sheetName = 'Sheet1',
+  applyStyles?: (instances: any[], workbook: any, sheetName: string) => void,
+): Promise<string> => {
+  return internalSave2Excel(instances, outputFullPath, templateFullPath, sheetName, applyStyles)
+}
 
 /**
  * 引数のJSON配列を、指定したテンプレートを用いて、指定したファイルに出力します。
@@ -67,7 +82,7 @@ export const csv2json = (filePath: string): Promise<Array<any>> => {
  * @param sheetName テンプレートExcelのシート名
  * @param applyStyles 出力時のExcelを書式フォーマットしたい場合に使用する。
  */
-export const internalSave2Excel = async (
+const internalSave2Excel = async (
   instances: any[],
   outputFullPath: string,
   templateFullPath: string,
@@ -174,7 +189,6 @@ export const toBoolean = function (boolStr: string | boolean): boolean {
   }
   return boolStr.toLowerCase() === 'true'
 }
-
 
 // XlsxPopulate
 export const getHeaders = (workbook: any, sheetName: string): string[] => {

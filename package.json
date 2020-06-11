@@ -1,9 +1,9 @@
 {
-  "name": "excel_csv_read_write",
+  "name": "excel-csv-read-write",
   "version": "0.1.0-SNAPSHOT",
-  "description": "",
+  "description": "Excel and CSV read write utility.",
   "main": "dist/index.js",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/commonUtils.d.ts",
   "scripts": {
     "dev": "ts-node src/index.ts",
     "dev:watch": "ts-node-dev --respawn src/index.ts",
@@ -11,11 +11,11 @@
     "clean": "rimraf dist/*",
     "tsc": "tsc",
     "build": "npm-run-all clean tsc",
+    "pack": "npm pack",
     "start": "node .",
-    "test": "NODE_ENV= jest"
+    "test": "NODE_ENV= jest --coverage --runInBand",
+    "prepublish": "npm run build"
   },
-  "keywords": [],
-  "author": "Masatomi KINO <masatomix@ki-no.org> (http://qiita.com/masatomix)",
   "jest": {
     "moduleFileExtensions": [
       "ts",
@@ -34,7 +34,20 @@
       "**/__tests__/*.spec.+(ts|tsx|js)"
     ]
   },
-  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/masatomix/excel-csv-read-write.git"
+  },
+  "keywords": [
+    "typescript",
+    "javascript"
+  ],
+  "author": "Masatomi KINO <masatomix@ki-no.org> (http://qiita.com/masatomix)",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/masatomix/excel-csv-read-write/issues"
+  },
+  "homepage": "https://github.com/masatomix/excel-csv-read-write#readme",
   "devDependencies": {
     "@types/bunyan": "^1.8.6",
     "@types/config": "0.0.36",

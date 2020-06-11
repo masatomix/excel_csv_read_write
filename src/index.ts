@@ -1,7 +1,6 @@
 import { getAndExtract } from './utils'
 import fs from 'fs'
-import { csv2json, internalSave2Excel, xlsx2json } from './commonUtils'
-
+import { csv2json, excel2json, json2excel } from './commonUtils'
 
 /**
  * ネットからZIP化されたファイルをダウンロードして解凍、
@@ -17,7 +16,7 @@ function sample1() {
         for (const address of fresults) {
           console.log(address)
         }
-        internalSave2Excel(fresults, './13tokyo.xlsx', '', 'Sheet1')
+        json2excel(fresults, './13tokyo.xlsx')
       })
       .finally(() => {
         if (fs.existsSync('./13tokyo.csv')) {
@@ -30,16 +29,39 @@ function sample1() {
   // https://tsurutoro.com/pseudo_data/
 }
 
-
 function sample2() {
-  const resultPromise = xlsx2json('input.xlsx')
+  const resultPromise = excel2json('input.xlsx')
   resultPromise.then((results) => {
     console.table(results)
-    internalSave2Excel(results, 'excelResults.xlsx', '', 'Sheet1').then((path) => console.log(path))
+    json2excel(results, 'excelResults.xlsx').then((path) => console.log(path))
   })
+}
+
+/**
+ * csvを読み込むサンプル。データは全部文字列で取得できる。
+ */
+async function sample3() {
+  await getAndExtract('http://jusyo.jp/downloads/new/csv/csv_13tokyo.zip')
+  const csvDatas: Array<any> = (await csv2json('./13tokyo.csv')).filter((address) =>
+    address['郵便番号'].startsWith('100-000'),
+  )
+  console.table(csvDatas)
+}
+
+/**
+ * Excelファイルを読み込むサンプル。データは入っているデータに応じて、型変換されて取り込まれる
+ * 今時点、日付などは適切にフォーマット変換が必要みたいだ
+ */
+async function sample4() {
+  const excelDatas: Array<any> = await excel2json('input.xlsx')
+  console.table(excelDatas)
 }
 
 if (!module.parent) {
   // sample1()
-  sample2()
+  // sample2()
+  (async () => {
+    await sample3()
+    await sample4()
+  })()
 }
