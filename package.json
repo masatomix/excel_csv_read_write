@@ -1,13 +1,14 @@
 {
   "name": "excel-csv-read-write",
-  "version": "0.1.0-SNAPSHOT",
+  "version": "0.1.1-SNAPSHOT",
   "description": "Excel and CSV read write utility.",
-  "main": "dist/index.js",
-  "types": "./dist/commonUtils.d.ts",
+  "main": "dist/commonUtils.js",
+  "types": "dist/commonUtils.d.ts",
   "scripts": {
     "dev": "ts-node src/index.ts",
     "dev:watch": "ts-node-dev --respawn src/index.ts",
     "lint": "tslint --fix --project tsconfig.json",
+    "clean:modules": "rimraf node_modules/*",
     "clean": "rimraf dist/*",
     "tsc": "tsc",
     "build": "npm-run-all clean tsc",
