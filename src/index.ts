@@ -57,11 +57,45 @@ async function sample4() {
   console.table(excelDatas)
 }
 
+async function sample5() {
+  let robots: Array<any> = await csv2json('robotSample.csv')
+  robots = robots.map((robot) => Object.assign({}, robot, { now: new Date() })) // 日付列を追加
+  console.table(robots)
+
+  // なにも考えずにダンプ
+  json2excel(robots, 'output/robots.xlsx')
+
+  // nowというプロパティには、変換をかけたケース
+  json2excel(robots, 'output/robots1.xlsx', '', 'Sheet1', {
+    now: (value: any) => value,
+    // Id: (value: any) => '0' + value,
+  })
+
+  // now というプロパティには変換をかけ、さらにその列(M列) は日付フォーマットで出力する
+  json2excel(
+    robots,
+    'output/robots2.xlsx',
+    '',
+    'Sheet1',
+    {
+      now: (value: any) => value,
+    },
+    (instances: any[], workbook: any, sheetName: string) => {
+      const rowCount = instances.length
+      const sheet = workbook.sheet(sheetName)
+      sheet.range(`M2:M${rowCount + 1}`).style('numberFormat', 'yyyy/mm/dd hh:mm') // 書式: 日付+時刻
+    },
+  ) // プロパティ指定で、変換をかける
+
+  json2excel(robots, 'output/robotsToTemplate.xlsx', 'templateRobots.xlsx', 'Sheet1') // テンプレを指定したケース
+}
+
 if (!module.parent) {
   // sample1()
   // sample2()
-  (async () => {
-    await sample3()
-    await sample4()
+  ;(async () => {
+    // await sample3()
+    // await sample4()
+    await sample5()
   })()
 }

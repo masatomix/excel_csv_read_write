@@ -61,7 +61,7 @@ export const csv2json = (filePath: string): Promise<Array<any>> => {
  * @param instances JSON配列
  * @param outputFullPath 出力Excelのパス
  * @param templateFullPath 元にするテンプレートExcelのパス
- * @param sheetName テンプレートExcelのシート名
+ * @param sheetName テンプレートExcelのシート名(シート名で出力する)
  * @param applyStyles 出力時のExcelを書式フォーマットしたい場合に使用する。
  */
 export const json2excel = async (
@@ -69,33 +69,18 @@ export const json2excel = async (
   outputFullPath: string,
   templateFullPath = '',
   sheetName = 'Sheet1',
-  applyStyles?: (instances: any[], workbook: any, sheetName: string) => void,
-): Promise<string> => {
-  return internalSave2Excel(instances, outputFullPath, templateFullPath, sheetName, applyStyles)
-}
-
-/**
- * 引数のJSON配列を、指定したテンプレートを用いて、指定したファイルに出力します。
- * @param instances JSON配列
- * @param outputFullPath 出力Excelのパス
- * @param templateFullPath 元にするテンプレートExcelのパス
- * @param sheetName テンプレートExcelのシート名
- * @param applyStyles 出力時のExcelを書式フォーマットしたい場合に使用する。
- */
-const internalSave2Excel = async (
-  instances: any[],
-  outputFullPath: string,
-  templateFullPath: string,
-  sheetName: string,
+  converters?: any,
   applyStyles?: (instances: any[], workbook: any, sheetName: string) => void,
 ): Promise<string> => {
   logger.debug(`template path: ${templateFullPath}`)
   // console.log(instances[0])
   // console.table(instances)
 
-  let headings: string[] = []
+  let headings: string[] = [] // ヘッダ名の配列
   let workbook: any
-  if (templateFullPath !== '') {
+  const fileIsNew: boolean = templateFullPath === '' // templateが指定されない場合新規(fileIsNew = true)、そうでない場合テンプレファイルに出力
+
+  if (!fileIsNew) {
     // 指定された場合は、一行目の文字列群を使ってプロパティを作成する
     workbook = await XlsxPopulate.fromFileAsync(templateFullPath)
     headings = getHeaders(workbook, sheetName)
@@ -108,13 +93,13 @@ const internalSave2Excel = async (
   }
 
   if (instances.length > 0) {
-    const csvArrays: any[][] = createCsvArrays(headings, instances)
+    const csvArrays: any[][] = createCsvArrays(headings, instances, converters)
     // console.table(csvArrays)
     const rowCount = instances.length
     const columnCount = headings.length
     const sheet = workbook.sheet(sheetName)
 
-    if (sheet.usedRange()) {
+    if (!fileIsNew && sheet.usedRange()) {
       sheet.usedRange().clear() // Excel上のデータを削除して。
     }
     sheet.cell('A1').value(csvArrays)
@@ -157,15 +142,18 @@ const toFullPath = (str: string) => {
 }
 
 // 自前実装
-function createCsvArrays(headings: string[], instances: any[]) {
+function createCsvArrays(headings: string[], instances: any[], converters?: any) {
   const csvArrays: any[][] = instances.map((instance: any): any[] => {
     // console.log(instance)
     const csvArray = headings.reduce((box: any[], header: string): any[] => {
       // console.log(`${instance[header]}: ${instance[header] instanceof Object}`)
-      if (instance[header] instanceof Object) {
-        box.push(JSON.stringify(instance[header]))
+      // console.log(converters)
+      if (converters && converters[header]) {  // header名に合致するConverterがある場合はそれ優先で適用
+        box.push(converters[header](instance[header]))
+      } else if (instance[header] instanceof Object) { // Converterがない場合は、文字列に変換
+        box.push(JSON.stringify(instance[header])) 
       } else {
-        box.push(instance[header])
+        box.push(instance[header]) // あとはそのまま
       }
       return box
     }, [])
