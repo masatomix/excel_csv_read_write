@@ -1,8 +1,9 @@
 {
-  "name": "ts-node-template",
+  "name": "excel_csv_read_write",
   "version": "0.1.0-SNAPSHOT",
   "description": "",
   "main": "dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "dev": "ts-node src/index.ts",
     "dev:watch": "ts-node-dev --respawn src/index.ts",
