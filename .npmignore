@@ -1,0 +1,15 @@
+*.xlsx
+.github/
+attic/
+config/
+coverage/
+logs/
+node_modules/
+src/
+tsconfig.json
+tslint.json
+__tests__
+.vscode/settings.json
+dist/samples/
+.DS_Store
+*.tgz
