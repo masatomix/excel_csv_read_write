@@ -1,0 +1,9 @@
+Id,MachineName,MachineId,Username,RobotEnvironments,Version,Name,HostingType,ProvisionType,UserId,IsExternalLicensed,Type
+1,WINDOWS,1,ad\masatomi,test,19.10.4.0,WINDOWS,Standard,Manual,3,FALSE,Development
+2,SQLServer,2,ad\ur,test,19.10.4.0,SQLServer,Standard,Manual,6,FALSE,Unattended
+3,WINDOWSESXI,3,ad\masatomi,test,,WINDOWSESXI_masa,Standard,Manual,7,FALSE,Development
+4,WINDOWSESXI,3,m-kino,test,20.4.0.0,WINDOWSESXI_m-kino,Standard,Manual,8,FALSE,Development
+5,WINDOWS,1,ad\ur,test,19.10.4.0,WINDOWS_UR,Standard,Manual,9,TRUE,Unattended
+6,WINDOWS,1,m-kino,test,19.10.4.0,WINDOWS_m-kino,Standard,Manual,14,FALSE,Development
+7,SQLServer,2,ad\administrator,,,SQLServer_ad,Standard,Manual,39,FALSE,Development
+8,SQLServer,2,ad\masatomi,,,SQLServer_masa,Standard,Manual,40,FALSE,Development

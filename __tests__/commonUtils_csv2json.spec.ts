@@ -1,9 +1,9 @@
-import CsvReaderSample from '../src/index'
-import fs, { WriteStream } from 'fs'
+import { getAndExtract } from '../src/utils'
+import { csv2json } from '../src/commonUtils'
+import fs from 'fs'
 import path from 'path'
 
 describe('テスト', () => {
-  let api: CsvReaderSample
   let instances: any[]
 
   const url: string = 'http://jusyo.jp/downloads/new/csv/csv_13tokyo.zip'
@@ -12,15 +12,14 @@ describe('テスト', () => {
   const fullPath: string = path.join(baseDir, csvPath)
 
   beforeEach(async () => {
-    api = new CsvReaderSample()
-    await api.getAndExtract(url)
+    await getAndExtract(url)
   })
 
   it('getテスト1', async () => {
     expect(fs.existsSync(fullPath)).toBeTruthy()
-    instances = await api.parse(fullPath)
+    instances = await csv2json(fullPath)
     assertBasicArray(instances, 22)
-    for (const obj of instances.filter(instance => instance['郵便番号'] === '100-0000')) {
+    for (const obj of instances.filter((instance) => instance['郵便番号'] === '100-0000')) {
       console.log(obj)
     }
   })
@@ -28,19 +27,19 @@ describe('テスト', () => {
   it('getテスト2', async () => {
     expect(fs.existsSync(fullPath)).toBeTruthy()
     fs.unlinkSync(fullPath)
-    await api.getAndExtract(url)
+    await getAndExtract(url)
     expect(fs.existsSync(fullPath)).toBeTruthy()
 
-    instances = await api.parse(fullPath)
+    instances = await csv2json(fullPath)
     assertBasicArray(instances, 22)
-    for (const obj of instances.filter(instance => instance['郵便番号'] === '100-0000')) {
+    for (const obj of instances.filter((instance) => instance['郵便番号'] === '100-0000')) {
       console.log(obj)
     }
   })
 
   afterEach(async () => {
     await new Promise((resolve, reject) => {
-      fs.unlink(fullPath, error => {
+      fs.unlink(fullPath, (error) => {
         if (error) {
           console.log(error)
           reject(error)
