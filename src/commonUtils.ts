@@ -1,18 +1,19 @@
 import path from 'path'
-import fs from 'fs'
+import fs, { ReadStream } from 'fs'
 import iconv from 'iconv-lite'
 import csv from 'csvtojson'
+const XlsxPopulate = require('xlsx-populate')
 
 import { getLogger } from './logger'
 
 const logger = getLogger('main')
 
-const XlsxPopulate = require('xlsx-populate')
 
 /**
  * Excelファイルを読み込み、各行をデータとして配列で返すメソッド。
  * @param path Excelファイルパス
  * @param sheet シート名
+ * @param sheetName
  * @param format_func フォーマット関数。instanceは各行データが入ってくるので、任意に整形して返せばよい
  */
 export const excel2json = async (
@@ -20,7 +21,28 @@ export const excel2json = async (
   sheetName = 'Sheet1',
   format_func?: (instance: any) => any,
 ): Promise<Array<any>> => {
-  const workbook: any = await XlsxPopulate.fromFileAsync(inputFullPath)
+  const stream: ReadStream = fs.createReadStream(inputFullPath)
+  return excelStream2json(stream, sheetName, format_func)
+}
+
+/**
+ * Excelファイルを読み込み、各行をデータとして配列で返すメソッド。
+ * @param stream
+ * @param sheetName
+ * @param format_func フォーマット関数。instanceは各行データが入ってくるので、任意に整形して返せばよい
+ */
+export const excelStream2json = async (
+  stream: ReadStream,
+  sheetName = 'Sheet1',
+  format_func?: (instance: any) => any,
+): Promise<Array<any>> => {
+  // cf:https://qiita.com/masakura/items/5683e8e3e655bfda6756
+  const buf: Buffer = await new Promise((resolve, reject) => {
+    let buf: any
+    stream.on('data', (data) => (buf = data)).on('end', () => resolve(buf))
+  })
+
+  const workbook: any = await XlsxPopulate.fromDataAsync(buf)
   const headings: string[] = getHeaders(workbook, sheetName)
   // console.log(headings.length)
   const valuesArray: any[][] = getValuesArray(workbook, sheetName)
@@ -45,10 +67,28 @@ export const excel2json = async (
  * @param filePath
  */
 export const csv2json = (filePath: string): Promise<Array<any>> => {
+  return csvStream2json(fs.createReadStream(filePath))
+  // return new Promise((resolve, reject) => {
+  //   const datas: any[] = []
+
+  //   fs.createReadStream(filePath)
+  //     .pipe(iconv.decodeStream('Shift_JIS'))
+  //     .pipe(iconv.encodeStream('utf-8'))
+  //     .pipe(csv().on('data', (data) => datas.push(JSON.parse(data))))
+  //     .on('end', () => resolve(datas))
+  // })
+}
+
+/**
+ * 指定したパスのcsvファイルをロードして、JSONオブジェクトとしてparseする。
+ * 全行読み込んだら完了する Promise を返す。
+ * @param fs
+ */
+export const csvStream2json = (stream: ReadStream): Promise<Array<any>> => {
   return new Promise((resolve, reject) => {
     const datas: any[] = []
 
-    fs.createReadStream(filePath)
+    stream
       .pipe(iconv.decodeStream('Shift_JIS'))
       .pipe(iconv.encodeStream('utf-8'))
       .pipe(csv().on('data', (data) => datas.push(JSON.parse(data))))

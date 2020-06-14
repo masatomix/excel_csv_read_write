@@ -1,7 +1,6 @@
-import { getAndExtract } from '../utils'
-import fs from 'fs'
 import path from 'path'
-import { csv2json, excel2json, json2excel } from '../commonUtils'
+import fs from 'fs'
+import { excel2json, json2excel, excelStream2json } from '../commonUtils'
 
 /**
  * Excelファイルを読み込んで、ふたたびExcelに書き出すサンプル
@@ -25,6 +24,15 @@ function sample2() {
   resultPromise.then((results) => {
     console.table(results)
     json2excel(results, path.join('output', '13tokyoResult.xlsx')).then((filePath) => console.log(filePath))
+  })
+}
+
+function sample21() {
+  const stream = fs.createReadStream('13tokyo.csv.xlsx')
+  const resultPromise = excelStream2json(stream)
+  resultPromise.then((results) => {
+    console.table(results)
+    json2excel(results, path.join('output', '13tokyoResult1.xlsx')).then((filePath) => console.log(filePath))
   })
 }
 
