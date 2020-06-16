@@ -4,10 +4,11 @@ import iconv from 'iconv-lite'
 import csv from 'csvtojson'
 const XlsxPopulate = require('xlsx-populate')
 
+import * as JSZip from 'jszip'
+
 import { getLogger } from './logger'
 
 const logger = getLogger('main')
-
 
 /**
  * Excelファイルを読み込み、各行をデータとして配列で返すメソッド。
@@ -21,8 +22,18 @@ export const excel2json = async (
   sheetName = 'Sheet1',
   format_func?: (instance: any) => any,
 ): Promise<Array<any>> => {
-  const stream: ReadStream = fs.createReadStream(inputFullPath)
-  return excelStream2json(stream, sheetName, format_func)
+  const promise = new JSZip.external.Promise((resolve, reject) => {
+    fs.readFile(inputFullPath, (err, data) => {
+      if (err) return reject(err)
+      resolve(data)
+    })
+  }).then((data) => XlsxPopulate.fromDataAsync(data))
+
+  return excelData2json(await promise, sheetName, format_func)
+
+  // 安定しないので、いったん処理変更
+  // const stream: ReadStream = fs.createReadStream(inputFullPath)
+  // return excelStream2json(stream, sheetName, format_func)
 }
 
 /**
@@ -32,17 +43,31 @@ export const excel2json = async (
  * @param format_func フォーマット関数。instanceは各行データが入ってくるので、任意に整形して返せばよい
  */
 export const excelStream2json = async (
-  stream: ReadStream,
+  stream: NodeJS.ReadableStream,
   sheetName = 'Sheet1',
   format_func?: (instance: any) => any,
 ): Promise<Array<any>> => {
   // cf:https://qiita.com/masakura/items/5683e8e3e655bfda6756
-  const buf: Buffer = await new Promise((resolve, reject) => {
+  const promise = new JSZip.external.Promise((resolve, reject) => {
     let buf: any
     stream.on('data', (data) => (buf = data)).on('end', () => resolve(buf))
-  })
+  }).then((buf) => XlsxPopulate.fromDataAsync(buf))
 
-  const workbook: any = await XlsxPopulate.fromDataAsync(buf)
+  return excelData2json(await promise, sheetName, format_func)
+}
+
+/**
+ * Excelファイルを読み込み、各行をデータとして配列で返すメソッド。
+ * @param stream
+ * @param sheetName
+ * @param format_func フォーマット関数。instanceは各行データが入ってくるので、任意に整形して返せばよい
+ */
+export const excelData2json = async (
+  data: any,
+  sheetName = 'Sheet1',
+  format_func?: (instance: any) => any,
+): Promise<Array<any>> => {
+  const workbook: any = data
   const headings: string[] = getHeaders(workbook, sheetName)
   // console.log(headings.length)
   const valuesArray: any[][] = getValuesArray(workbook, sheetName)
@@ -84,7 +109,7 @@ export const csv2json = (filePath: string): Promise<Array<any>> => {
  * 全行読み込んだら完了する Promise を返す。
  * @param fs
  */
-export const csvStream2json = (stream: ReadStream): Promise<Array<any>> => {
+export const csvStream2json = (stream: NodeJS.ReadableStream): Promise<Array<any>> => {
   return new Promise((resolve, reject) => {
     const datas: any[] = []
 
