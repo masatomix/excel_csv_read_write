@@ -118,6 +118,8 @@ export const csvStream2json = (stream: NodeJS.ReadableStream): Promise<Array<any
       .pipe(iconv.encodeStream('utf-8'))
       .pipe(csv().on('data', (data) => datas.push(JSON.parse(data))))
       .on('end', () => resolve(datas))
+      // const row = Buffer.isBuffer(data) ? JSON.parse(data.toString()) : JSON.parse(data)
+
   })
 }
 
