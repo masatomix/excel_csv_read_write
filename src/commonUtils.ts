@@ -198,6 +198,60 @@ export const json2excel = async (
   return toFullPath(outputFullPath)
 }
 
+/**
+ * 引数のJSON配列を、指定したテンプレートを用いて、指定したファイルに出力します。
+ * @param instances JSON配列
+ * @param sheetName テンプレートExcelのシート名(シート名で出力する)
+ * @param applyStyles 出力時のExcelを書式フォーマットしたい場合に使用する。
+ */
+export const json2excelBlob = async (
+  instances: any[],
+  sheetName = 'Sheet1',
+  converters?: any,
+  applyStyles?: (instances: any[], workbook: any, sheetName: string) => void,
+): Promise<Blob> => {
+  let headings: string[] = [] // ヘッダ名の配列
+  let workbook: any
+
+  workbook = await XlsxPopulate.fromBlankAsync()
+  if (instances.length > 0) {
+    headings = Object.keys(instances[0])
+  }
+
+  if (instances.length > 0) {
+    const csvArrays: any[][] = createCsvArrays(headings, instances, converters)
+    // console.table(csvArrays)
+    const rowCount = instances.length
+    const columnCount = headings.length
+    const sheet = workbook.sheet(sheetName)
+
+    sheet.cell('A1').value(csvArrays)
+
+    // データがあるところには罫線を引く(細いヤツ)
+    const startCell = sheet.cell('A1')
+    const endCell = startCell.relativeCell(rowCount, columnCount - 1)
+
+    sheet.range(startCell, endCell).style('border', {
+      top: { style: 'hair' },
+      left: { style: 'hair' },
+      bottom: { style: 'hair' },
+      right: { style: 'hair' },
+    })
+
+    // よくある整形パタン。
+    // sheet.range(`C2:C${rowCount + 1}`).style('numberFormat', '@') // 書式: 文字(コレをやらないと、見かけ上文字だが、F2で抜けると数字になっちゃう)
+    // sheet.range(`E2:F${rowCount + 1}`).style('numberFormat', 'yyyy/mm/dd') // 書式: 日付
+    // sheet.range(`H2:H${rowCount + 1}`).style('numberFormat', 'yyyy/mm/dd hh:mm') // 書式: 日付+時刻
+
+    if (applyStyles) {
+      applyStyles(instances, workbook, sheetName)
+    }
+  }
+
+  const blob: Blob = await workbook.outputAsync()
+  return blob
+}
+
 const toFullPath = (str: string) => {
   let ret = ''
   if (path.isAbsolute(str)) {
