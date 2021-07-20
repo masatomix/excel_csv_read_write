@@ -1,6 +1,6 @@
 {
   "name": "excel-csv-read-write",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Excel and CSV read write utility.",
   "main": "dist/commonUtils.js",
   "types": "dist/commonUtils.d.ts",
@@ -65,10 +65,11 @@
     "typescript": "^3.8.3"
   },
   "dependencies": {
-    "config": "^3.2.5",
     "bunyan": "^1.8.12",
+    "config": "^3.2.5",
     "csvtojson": "^2.0.10",
     "iconv-lite": "^0.5.1",
+    "jszip": "^3.6.0",
     "unzip": "^0.1.11",
     "xlsx-populate": "^1.21.0"
   }
