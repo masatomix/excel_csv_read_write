@@ -64,6 +64,7 @@
     "@types/unzip": "^0.1.1",
     "@types/unzip-stream": "^0.3.1",
     "@typescript-eslint/eslint-plugin": "^5.33.1",
+    "@types/xlsx-populate": "git+https://github.com/JanLoebel/types-xlsx-populate.git",
     "babel-loader": "^8.3.0",
     "eslint": "^8.22.0",
     "eslint-config-prettier": "^8.5.0",

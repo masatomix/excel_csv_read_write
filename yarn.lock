@@ -780,6 +780,10 @@
   dependencies:
     "@types/node" "*"
 
+"@types/xlsx-populate@git+https://github.com/JanLoebel/types-xlsx-populate.git":
+  version "1.19.1"
+  resolved "git+https://github.com/JanLoebel/types-xlsx-populate.git#7ef81174e495fe9ef2689bd329499f81a2a93d43"
+
 "@types/yargs-parser@*":
   version "21.0.0"
   resolved "https://registry.yarnpkg.com/@types/yargs-parser/-/yargs-parser-21.0.0.tgz#0c60e537fa790f5f9472ed2776c2b71ec117351b"

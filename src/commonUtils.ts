@@ -1,13 +1,11 @@
-// import { ReadStream } from 'fs'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as csv from 'csvtojson'
 import * as iconv from 'iconv-lite'
-
 import * as JSZip from 'jszip'
-
+import * as XlsxPopulate from 'xlsx-populate'
 import { getLogger } from './logger'
-const XlsxPopulate = require('xlsx-populate')
+// const XlsxPopulate = require('xlsx-populate')
 
 const logger = getLogger('main')
 
@@ -21,14 +19,14 @@ const logger = getLogger('main')
 export const excel2json = async (
   inputFullPath: string,
   sheetName = 'Sheet1',
-  format_func?: (instance: any) => any,
+  format_func?: (instance: unknown) => unknown,
 ): Promise<any[]> => {
-  const promise = new JSZip.external.Promise((resolve, reject) => {
+  const promise = new JSZip.external.Promise<Buffer>((resolve, reject) => {
     fs.readFile(inputFullPath, (err, data) => {
       if (err) return reject(err)
       resolve(data)
     })
-  }).then((data) => XlsxPopulate.fromDataAsync(data))
+  }).then(async (data: Buffer) => await XlsxPopulate.fromDataAsync(data))
 
   return await excelData2json(await promise, sheetName, format_func)
 
@@ -52,7 +50,7 @@ export const excelStream2json = async (
   const promise = new JSZip.external.Promise((resolve, reject) => {
     let buf: any
     stream.on('data', (data) => (buf = data)).on('end', () => resolve(buf))
-  }).then((buf) => XlsxPopulate.fromDataAsync(buf))
+  }).then(async (buf: any) => await XlsxPopulate.fromDataAsync(buf))
 
   return await excelData2json(await promise, sheetName, format_func)
 }
