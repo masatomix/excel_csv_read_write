@@ -1,7 +1,7 @@
 import { getAndExtract } from '../src/utils'
 import { csv2json } from '../src/commonUtils'
-import fs from 'fs'
-import path from 'path'
+import * as fs from 'fs'
+import * as path from 'path'
 
 describe('テスト', () => {
   let instances: any[]

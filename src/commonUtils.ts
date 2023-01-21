@@ -1,12 +1,13 @@
-import path from 'path'
-import fs, { ReadStream } from 'fs'
-import iconv from 'iconv-lite'
-import csv from 'csvtojson'
-const XlsxPopulate = require('xlsx-populate')
+// import { ReadStream } from 'fs'
+import * as fs from 'fs'
+import * as path from 'path'
+import * as csv from 'csvtojson'
+import * as iconv from 'iconv-lite'
 
 import * as JSZip from 'jszip'
 
 import { getLogger } from './logger'
+const XlsxPopulate = require('xlsx-populate')
 
 const logger = getLogger('main')
 
@@ -21,7 +22,7 @@ export const excel2json = async (
   inputFullPath: string,
   sheetName = 'Sheet1',
   format_func?: (instance: any) => any,
-): Promise<Array<any>> => {
+): Promise<any[]> => {
   const promise = new JSZip.external.Promise((resolve, reject) => {
     fs.readFile(inputFullPath, (err, data) => {
       if (err) return reject(err)
@@ -29,7 +30,7 @@ export const excel2json = async (
     })
   }).then((data) => XlsxPopulate.fromDataAsync(data))
 
-  return excelData2json(await promise, sheetName, format_func)
+  return await excelData2json(await promise, sheetName, format_func)
 
   // 安定しないので、いったん処理変更
   // const stream: ReadStream = fs.createReadStream(inputFullPath)
@@ -46,14 +47,14 @@ export const excelStream2json = async (
   stream: NodeJS.ReadableStream,
   sheetName = 'Sheet1',
   format_func?: (instance: any) => any,
-): Promise<Array<any>> => {
+): Promise<any[]> => {
   // cf:https://qiita.com/masakura/items/5683e8e3e655bfda6756
   const promise = new JSZip.external.Promise((resolve, reject) => {
     let buf: any
     stream.on('data', (data) => (buf = data)).on('end', () => resolve(buf))
   }).then((buf) => XlsxPopulate.fromDataAsync(buf))
 
-  return excelData2json(await promise, sheetName, format_func)
+  return await excelData2json(await promise, sheetName, format_func)
 }
 
 /**
@@ -66,7 +67,7 @@ export const excelData2json = async (
   data: any,
   sheetName = 'Sheet1',
   format_func?: (instance: any) => any,
-): Promise<Array<any>> => {
+): Promise<any[]> => {
   const workbook: any = data
   const headings: string[] = getHeaders(workbook, sheetName)
   // console.log(headings.length)
@@ -76,6 +77,7 @@ export const excelData2json = async (
     return values.reduce((box: any, column: any, index: number) => {
       // 列単位で処理してきて、ヘッダの名前で代入する。
       box[headings[index]] = column
+
       return box
     }, {})
   })
@@ -83,6 +85,7 @@ export const excelData2json = async (
   if (format_func) {
     return instances.map((instance) => format_func(instance))
   }
+
   return instances
 }
 
@@ -91,8 +94,8 @@ export const excelData2json = async (
  * 全行読み込んだら完了する Promise を返す。
  * @param filePath
  */
-export const csv2json = (filePath: string): Promise<Array<any>> => {
-  return csvStream2json(fs.createReadStream(filePath))
+export const csv2json = async (filePath: string): Promise<any[]> => {
+  return await csvStream2json(fs.createReadStream(filePath))
   // return new Promise((resolve, reject) => {
   //   const datas: any[] = []
 
@@ -109,8 +112,8 @@ export const csv2json = (filePath: string): Promise<Array<any>> => {
  * 全行読み込んだら完了する Promise を返す。
  * @param fs
  */
-export const csvStream2json = (stream: NodeJS.ReadableStream): Promise<Array<any>> => {
-  return new Promise((resolve, reject) => {
+export const csvStream2json = async (stream: NodeJS.ReadableStream): Promise<any[]> => {
+  return await new Promise((resolve, reject) => {
     const datas: any[] = []
 
     stream
@@ -118,7 +121,7 @@ export const csvStream2json = (stream: NodeJS.ReadableStream): Promise<Array<any
       .pipe(iconv.encodeStream('utf-8'))
       .pipe(csv().on('data', (data) => datas.push(JSON.parse(data))))
       .on('end', () => resolve(datas))
-      // const row = Buffer.isBuffer(data) ? JSON.parse(data.toString()) : JSON.parse(data)
+    // const row = Buffer.isBuffer(data) ? JSON.parse(data.toString()) : JSON.parse(data)
 
   })
 }
@@ -249,21 +252,15 @@ export const json2excelBlob = async (
   }
 
   const blob: Blob = await workbook.outputAsync()
+
   return blob
 }
 
-const toFullPath = (str: string) => {
-  let ret = ''
-  if (path.isAbsolute(str)) {
-    ret = str
-  } else {
-    ret = path.join(path.resolve(''), str)
-  }
-  return ret
-}
+const toFullPath = (str: string): string => path.isAbsolute(str) ? str : path.join(path.resolve(''), str)
+
 
 // 自前実装
-function createCsvArrays(headings: string[], instances: any[], converters?: any) {
+function createCsvArrays(headings: string[], instances: any[], converters?: any): any[][] {
   const csvArrays: any[][] = instances.map((instance: any): any[] => {
     // console.log(instance)
     const csvArray = headings.reduce((box: any[], header: string): any[] => {
@@ -272,15 +269,18 @@ function createCsvArrays(headings: string[], instances: any[], converters?: any)
       if (converters && converters[header]) {  // header名に合致するConverterがある場合はそれ優先で適用
         box.push(converters[header](instance[header]))
       } else if (instance[header] instanceof Object) { // Converterがない場合は、文字列に変換
-        box.push(JSON.stringify(instance[header])) 
+        box.push(JSON.stringify(instance[header]))
       } else {
         box.push(instance[header]) // あとはそのまま
       }
+
       return box
     }, [])
+
     return csvArray
   })
   csvArrays.unshift(headings)
+
   return csvArrays
 }
 
@@ -296,6 +296,7 @@ export const toBoolean = function (boolStr: string | boolean): boolean {
   if (typeof boolStr === 'boolean') {
     return boolStr
   }
+
   return boolStr.toLowerCase() === 'true'
 }
 
@@ -308,5 +309,6 @@ export const getHeaders = (workbook: any, sheetName: string): string[] => {
 export const getValuesArray = (workbook: any, sheetName: string): any[][] => {
   const valuesArray: any[][] = workbook.sheet(sheetName).usedRange().value()
   valuesArray.shift() // 先頭除去
+
   return valuesArray
 }
