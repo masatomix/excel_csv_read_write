@@ -13,3 +13,5 @@ __tests__
 dist/samples/
 .DS_Store
 *.tgz
+tsconfig.node.json
+vite.config.ts
