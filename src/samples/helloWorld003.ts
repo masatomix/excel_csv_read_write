@@ -1,7 +1,6 @@
-import { getAndExtract } from '../utils'
-import fs from 'fs'
-import path from 'path'
-import { csv2json, excel2json, json2excel } from '../commonUtils'
+import * as path from 'path'
+import { csv2json, json2excel } from '../commonUtils'
+
 
 /**
  * Excel出力の様々なケース.
@@ -21,7 +20,8 @@ import { csv2json, excel2json, json2excel } from '../commonUtils'
  *
  */
 async function sample5() {
-  let robots: Array<any> = await csv2json(path.join('src/samples', 'robotSample.csv'))
+  let robots: unknown[] = await csv2json(path.join('src/samples', 'robotSample.csv'))
+  // robots = robots.map((robot) => ({ ...robot, now: new Date() })) // 日付列を追加
   robots = robots.map((robot) => Object.assign({}, robot, { now: new Date() })) // 日付列を追加
   console.table(robots)
 
@@ -54,7 +54,7 @@ async function sample5() {
 }
 
 if (!module.parent) {
-  ;(async () => {
+  ; (async () => {
     await sample5()
   })()
 }

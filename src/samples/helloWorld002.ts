@@ -1,6 +1,7 @@
-import path from 'path'
-import fs from 'fs'
+import * as fs from 'fs'
+import * as path from 'path'
 import { excel2json, json2excel, excelStream2json } from '../commonUtils'
+import { Address } from './data'
 
 /**
  * Excelファイルを読み込んで、ふたたびExcelに書き出すサンプル
@@ -21,10 +22,10 @@ import { excel2json, json2excel, excelStream2json } from '../commonUtils'
  */
 function sample2() {
   const resultPromise = excel2json('13tokyo.csv.xlsx')
-  resultPromise.then((results) => {
+  resultPromise.then((results: Address[]) => {
     console.table(results)
     json2excel(results, path.join('output', '13tokyoResult.xlsx')).then((filePath) => console.log(filePath))
-  })
+  }).catch(error => console.log(error))
 }
 
 function sample21() {
@@ -33,7 +34,7 @@ function sample21() {
   resultPromise.then((results) => {
     console.table(results)
     json2excel(results, path.join('output', '13tokyoResult1.xlsx')).then((filePath) => console.log(filePath))
-  })
+  }).catch(error => console.log(error))
 }
 
 if (!module.parent) {
