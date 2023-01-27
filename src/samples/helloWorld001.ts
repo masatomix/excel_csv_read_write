@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { csv2json, json2excel } from '../commonUtils'
 import { getAndExtract } from '../utils'
-import { Address } from './data'
+import { isAddresses } from './data'
 
 /**
  * ネットからZIP化されたファイルをダウンロードして解凍、
@@ -26,27 +26,24 @@ import { Address } from './data'
 function sample001() {
   const url = 'http://jusyo.jp/downloads/new/csv/csv_13tokyo.zip'
 
-  getAndExtract(url).then((filePath: string) => {
-    // ファイルが解凍完了したら、ココが呼ばれる
-    csv2json(filePath)
-      .then((results: Address[]) => {
-
-        // 郵便番号が「100-000x」のものに絞ってみた
-        const fresults = results.filter((address) => address.郵便番号.startsWith('100-000'))
-        console.table(fresults)
-        // for (const address of fresults) {
-        //   console.log(address)
-        // }
-        json2excel(fresults, path.join('output', filePath + '.xlsx')).catch((e) => console.error(e))
-      })
-      .finally(() => {
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath)
-        } else {
-          console.log('ん？ないみたい')
-        }
-      })
-  }).catch(error => console.log(error))
+  getAndExtract(url)
+    .then((filePath: string) => {
+      // ファイルが解凍完了したら、ココが呼ばれる
+      csv2json(filePath)
+        .then((results: unknown[]) => {
+          if (isAddresses(results)) {
+            // 郵便番号が「100-000x」のものに絞ってみた
+            const fresults = results.filter((address) => address.郵便番号.startsWith('100-000'))
+            console.table(fresults)
+            // for (const address of fresults) {
+            //   console.log(address)
+            // }
+            json2excel(fresults, path.join('output', filePath + '.xlsx')).catch((e) => console.error(e))
+          }
+        })
+        .finally(() => (fs.existsSync(filePath) ? fs.unlinkSync(filePath) : console.log('ん？ないみたい')))
+    })
+    .catch((error) => console.log(error))
   // https://tsurutoro.com/pseudo_data/
 }
 
