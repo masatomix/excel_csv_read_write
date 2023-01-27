@@ -1,8 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import { isConditionalExpression } from 'typescript'
 import { excel2json, json2excel, excelStream2json } from '../commonUtils'
-import { Address } from './data'
+
 
 /**
  * Excelファイルを読み込んで、ふたたびExcelに書き出すサンプル
@@ -23,7 +22,7 @@ import { Address } from './data'
  */
 function sample2() {
   const resultPromise = excel2json('13tokyo.csv.xlsx')
-  resultPromise.then(async (results: Address[]) => {
+  resultPromise.then(async (results: unknown[]) => {
     console.table(results)
 
     return await json2excel(results, path.join('output', '13tokyoResult.xlsx')).then((filePath) => console.log(filePath))
