@@ -139,7 +139,7 @@ export const json2excel = async (
   templateFullPath = '',
   sheetName = 'Sheet1',
   converters?: Converters,
-  applyStyles?: (instances: any[], workbook: any, sheetName: string) => void,
+  applyStyles?: (instances: any[], workbook: XlsxPopulate.Workbook, sheetName: string) => void,
 ): Promise<string> => {
   logger.debug(`template path: ${templateFullPath}`)
   // console.log(instances[0])
@@ -210,12 +210,10 @@ export const json2excelBlob = async (
   instances: unknown[],
   sheetName = 'Sheet1',
   converters?: Converters,
-  applyStyles?: (instances: any[], workbook: any, sheetName: string) => void,
+  applyStyles?: (instances: any[], workbook: XlsxPopulate.Workbook, sheetName: string) => void,
 ): Promise<Blob> => {
   let headings: string[] = [] // ヘッダ名の配列
-  let workbook: any
-
-  workbook = await XlsxPopulate.fromBlankAsync()
+  const workbook = await XlsxPopulate.fromBlankAsync()
   if (instances.length > 0) {
     headings = Object.keys(instances[0] as CSVData)
   }
@@ -227,7 +225,7 @@ export const json2excelBlob = async (
     const columnCount = headings.length
     const sheet = workbook.sheet(sheetName)
 
-    sheet.cell('A1').value(csvArrays)
+    sheet.cell('A1').value(csvArrays as unknown as string)
 
     // データがあるところには罫線を引く(細いヤツ)
     const startCell = sheet.cell('A1')
@@ -250,7 +248,7 @@ export const json2excelBlob = async (
     }
   }
 
-  const blob: Blob = await workbook.outputAsync()
+  const blob: Blob = await workbook.outputAsync() as Blob
 
   return blob
 }
