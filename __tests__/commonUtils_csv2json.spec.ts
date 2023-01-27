@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { csv2json } from '../src/commonUtils'
-import { Address, isAddresses } from '../src/samples/data'
+import { isAddresses } from '../src/samples/data'
 import { getAndExtract } from '../src/utils'
 import { assertBasicArray } from './utils'
 

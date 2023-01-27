@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import * as csv from 'csvtojson'
-import { CSVData } from 'data'
+import { Converters, CSVData } from 'data'
 import * as iconv from 'iconv-lite'
 import * as JSZip from 'jszip'
 import * as XlsxPopulate from 'xlsx-populate'
@@ -21,7 +21,7 @@ export const excel2json = async (
   inputFullPath: string,
   sheetName = 'Sheet1',
   format_func?: (instance: CSVData) => CSVData,
-): Promise<any[]> => {
+): Promise<unknown[]> => {
   const promise = new JSZip.external.Promise<Buffer>((resolve, reject) => {
     fs.readFile(inputFullPath, (err, data) => (err ? reject(err) : resolve(data)))
   }).then(async (data: Buffer) => await XlsxPopulate.fromDataAsync(data))
@@ -43,7 +43,7 @@ export const excelStream2json = async (
   stream: NodeJS.ReadableStream,
   sheetName = 'Sheet1',
   format_func?: (instance: CSVData) => CSVData,
-): Promise<any[]> => {
+): Promise<unknown[]> => {
   // cf:https://qiita.com/masakura/items/5683e8e3e655bfda6756
   const promise = new JSZip.external.Promise((resolve, reject) => {
     let buf: any
@@ -134,11 +134,11 @@ export const csvStream2json = async (stream: NodeJS.ReadableStream, encoding = '
  * @param applyStyles 出力時のExcelを書式フォーマットしたい場合に使用する。
  */
 export const json2excel = async (
-  instances: any[],
+  instances: unknown[],
   outputFullPath: string,
   templateFullPath = '',
   sheetName = 'Sheet1',
-  converters?: any,
+  converters?: Converters,
   applyStyles?: (instances: any[], workbook: any, sheetName: string) => void,
 ): Promise<string> => {
   logger.debug(`template path: ${templateFullPath}`)
@@ -157,7 +157,7 @@ export const json2excel = async (
     // templateが指定されない場合は、空ファイルをつくり、オブジェクトのプロパティでダンプする。
     workbook = await XlsxPopulate.fromBlankAsync()
     if (instances.length > 0) {
-      headings = Object.keys(instances[0])
+      headings = Object.keys(instances[0] as CSVData)
     }
   }
 
@@ -207,9 +207,9 @@ export const json2excel = async (
  * @param applyStyles 出力時のExcelを書式フォーマットしたい場合に使用する。
  */
 export const json2excelBlob = async (
-  instances: any[],
+  instances: unknown[],
   sheetName = 'Sheet1',
-  converters?: any,
+  converters?: Converters,
   applyStyles?: (instances: any[], workbook: any, sheetName: string) => void,
 ): Promise<Blob> => {
   let headings: string[] = [] // ヘッダ名の配列
@@ -217,7 +217,7 @@ export const json2excelBlob = async (
 
   workbook = await XlsxPopulate.fromBlankAsync()
   if (instances.length > 0) {
-    headings = Object.keys(instances[0])
+    headings = Object.keys(instances[0] as CSVData)
   }
 
   if (instances.length > 0) {
@@ -257,16 +257,21 @@ export const json2excelBlob = async (
 
 const toFullPath = (str: string): string => (path.isAbsolute(str) ? str : path.join(path.resolve(''), str))
 
+
+
 // 自前実装
-function createCsvArrays(headings: string[], instances: any[], converters?: any): any[][] {
-  const csvArrays: any[][] = instances.map((instance: any): any[] => {
+const createCsvArrays = (headings: string[], instances: unknown[], converters?: Converters): unknown[][] => {
+  const csvArrays: unknown[][] = instances.map((tmpInstance: unknown): unknown[] => {
+    const instance = tmpInstance as CSVData
     // console.log(instance)
-    const csvArray = headings.reduce((box: any[], header: string): any[] => {
+    const csvArray = headings.reduce((box: unknown[], header: string): unknown[] => {
       // console.log(`${instance[header]}: ${instance[header] instanceof Object}`)
       // console.log(converters)
-      if (converters && converters[header]) {
+      // if (converters && converters[header]) {
+      if (converters?.[header]) {
         // header名に合致するConverterがある場合はそれ優先で適用
-        box.push(converters[header](instance[header]))
+        const converter = converters[header] as (value: unknown) => unknown
+        box.push(converter(instance[header]))
       } else if (instance[header] instanceof Object) {
         // Converterがない場合は、文字列に変換
         box.push(JSON.stringify(instance[header]))
@@ -301,14 +306,29 @@ export const toBoolean = function (boolStr: string | boolean): boolean {
 }
 
 // XlsxPopulate
-export const getHeaders = (workbook: any, sheetName: string): string[] => {
-  return workbook.sheet(sheetName).usedRange().value().shift()
+export const getHeaders = (workbook: XlsxPopulate.Workbook, sheetName: string): string[] => {
+  const sheet = workbook.sheet(sheetName)
+
+  if (sheet.usedRange()) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return sheet.usedRange()!.value().shift() as string[]
+  }
+
+  return []
 }
 
-// XlsxPopulate
-export const getValuesArray = (workbook: any, sheetName: string): any[][] => {
-  const valuesArray: any[][] = workbook.sheet(sheetName).usedRange().value()
-  valuesArray.shift() // 先頭除去
 
-  return valuesArray
+// XlsxPopulate
+export const getValuesArray = (workbook: XlsxPopulate.Workbook, sheetName: string): unknown[][] => {
+
+  const sheet = workbook.sheet(sheetName)
+  if (sheet.usedRange()) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const valuesArray: unknown[][] = sheet.usedRange()!.value()
+    valuesArray.shift() // 先頭除去
+
+    return valuesArray
+  }
+
+  return new Array([])
 }

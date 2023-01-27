@@ -1,9 +1,13 @@
 import * as path from 'path'
+import { Converters } from 'data'
+import XlsxPopulate from 'xlsx-populate'
 import { csv2json, json2excel } from '../commonUtils'
 
 
 /**
  * Excel出力の様々なケース.
+ * Excelファイルを読み込むサンプル。データは入っているデータに応じて、型変換されて取り込まれる
+ * 今時点、日付などは適切にフォーマット変換が必要みたいだ
  *
 ┌─────────┬─────┬───────────────┬───────────┬─────────────────────┬───────────────────┬─────────────┬──────────────────────┬─────────────┬───────────────┬────────┬────────────────────┬───────────────┬──────────────────────────┐
 │ (index) │ Id  │  MachineName  │ MachineId │      Username       │ RobotEnvironments │   Version   │         Name         │ HostingType │ ProvisionType │ UserId │ IsExternalLicensed │     Type      │           now            │
@@ -19,27 +23,27 @@ import { csv2json, json2excel } from '../commonUtils'
 └─────────┴─────┴───────────────┴───────────┴─────────────────────┴───────────────────┴─────────────┴──────────────────────┴─────────────┴───────────────┴────────┴────────────────────┴───────────────┴──────────────────────────┘
  *
  */
-async function sample5() {
+const sample5 = async () => {
   let robots: unknown[] = await csv2json(path.join('src/samples', 'robotSample.csv'))
-  // robots = robots.map((robot) => ({ ...robot, now: new Date() })) // 日付列を追加
+  // robots = robots.map((robot) => ({ ...robot, now: new Date() })) // 日付列を追加 unknown型には使えないので注意
   robots = robots.map((robot) => Object.assign({}, robot, { now: new Date() })) // 日付列を追加
   console.table(robots)
 
   // なにも考えずにダンプ
-  json2excel(robots, 'output/robots.xlsx')
+  json2excel(robots, 'output/robots.xlsx').catch(error => console.log(error))
 
   // プロパティごとに、変換メソッドをかませたケース
   // nowとIdというプロパティには、変換methodを指定
-  const converters = {
-    now: (value: any) => value,
-    Id: (value: any) => '0' + value,
+  const converters: Converters = {
+    now: (value: unknown) => value,
+    Id: (value: string) => '0' + value,
   }
-  json2excel(robots, 'output/robots1.xlsx', '', 'Sheet1', converters)
+  json2excel(robots, 'output/robots1.xlsx', '', 'Sheet1', converters).catch(error => console.log(error))
 
   // プロパティごとに、変換メソッドをかませたケース.
   // nowとIdというプロパティには、変換methodを指定
   // さらにその列(M列) に、日付フォーマットでExcel出力する
-  const excelFormatter = (instances: any[], workbook: any, sheetName: string) => {
+  const excelFormatter = (instances: any[], workbook: XlsxPopulate.Workbook, sheetName: string) => {
     const rowCount = instances.length
     const sheet = workbook.sheet(sheetName)
     sheet.range(`M2:M${rowCount + 1}`).style('numberFormat', 'yyyy/mm/dd hh:mm') // 書式: 日付+時刻
@@ -48,9 +52,9 @@ async function sample5() {
     // sheet.range(`E2:F${rowCount + 1}`).style('numberFormat', 'yyyy/mm/dd') // 書式: 日付
     // sheet.range(`H2:H${rowCount + 1}`).style('numberFormat', 'yyyy/mm/dd hh:mm') // 書式: 日付+時刻
   }
-  json2excel(robots, 'output/robots2.xlsx', '', 'Sheet1', converters, excelFormatter) // プロパティ指定で、変換をかける
+  json2excel(robots, 'output/robots2.xlsx', '', 'Sheet1', converters, excelFormatter).catch(error => console.log(error)) // プロパティ指定で、変換をかける
 
-  json2excel(robots, 'output/robots3.xlsx', path.join('src/samples', 'templateRobots.xlsx'), 'Sheet1') // テンプレを指定したケース
+  json2excel(robots, 'output/robots3.xlsx', path.join('src/samples', 'templateRobots.xlsx'), 'Sheet1').catch(error => console.log(error))// テンプレを指定したケース
 }
 
 if (!module.parent) {

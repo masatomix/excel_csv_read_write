@@ -3,13 +3,11 @@ import * as path from 'path'
 import { getAndExtract } from '../src/utils'
 import { csv2json, json2excel, excel2json, excelStream2json } from '../src/commonUtils'
 import { assertBasicArray } from './utils'
-import { Address } from '../src/samples/data'
+import { Converters, isCSVData } from '../src/data'
 
 
 describe('テスト', () => {
   jest.setTimeout(20000);
-
-  // let instances: any[]
 
   const url = 'http://jusyo.jp/downloads/new/csv/csv_13tokyo.zip'
   let csvPath = ''
@@ -17,6 +15,7 @@ describe('テスト', () => {
   let fullPath = ''
   const excelPath = path.join('', 'excel出力' + '.xlsx')
   const excelPath2 = path.join('', '13tokyoResult.xlsx')
+  const excelPath3 = path.join('', 'resultExcel3.xlsx')
 
 
   beforeEach(async () => {
@@ -33,7 +32,11 @@ describe('テスト', () => {
 
   it('excel', async () => {
     const results = (await excel2json(excelPath))
-      .filter((address) => address.住所CD ? address.住所CD === 100841000 : false)
+      .filter((address) =>
+        isCSVData(address) ?
+          address.住所CD ? address.住所CD === 100841000 : false
+          : false
+      )
     // console.table(results)
     assertBasicArray(results, 22)
 
@@ -45,7 +48,7 @@ describe('テスト', () => {
 
 
   it('excel2', async () => {
-    const results: Address[] = await excel2json('13tokyo.csv.xlsx')
+    const results: unknown[] = await excel2json('13tokyo.csv.xlsx')
     console.table(results)
     const filePath1 = await json2excel(results, excelPath2)
     console.log(filePath1)
@@ -55,6 +58,20 @@ describe('テスト', () => {
     console.table(results2)
     const filePath2 = await json2excel(results, excelPath2)
     console.log(filePath2)
+  })
+
+
+
+  it('excel3', async () => {
+
+    const instances = await csv2json(fullPath)
+    // プロパティごとに、変換メソッドをかませたケース
+    // nowとIdというプロパティには、変換methodを指定
+    const converters: Converters = {
+      住所CD: (value: string) => 'PREFIX:' + value,
+      郵便番号: (value: string) => '〒:' + value,
+    }
+    await json2excel(instances, excelPath3, '', 'Sheet1', converters)
   })
 
   // it('excel入力', async () => {
@@ -70,6 +87,7 @@ describe('テスト', () => {
     !fs.existsSync(fullPath) ?? fs.unlinkSync(fullPath)
     !fs.existsSync(excelPath) ?? fs.unlinkSync(excelPath)
     !fs.existsSync(excelPath2) ?? fs.unlinkSync(excelPath2)
+    !fs.existsSync(excelPath3) ?? fs.unlinkSync(excelPath3)
   })
 
   const createExcel = async (csvPath: string, excelPath: string): Promise<void> => {
