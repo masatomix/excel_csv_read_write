@@ -65,9 +65,9 @@ describe('テスト', () => {
   // })
 
   afterEach(async () => {
-    fs.unlinkSync(fullPath)
-    fs.unlinkSync(excelPath)
-    fs.unlinkSync(excelPath2)
+    !fs.existsSync(fullPath) ?? fs.unlinkSync(fullPath)
+    !fs.existsSync(excelPath) ?? fs.unlinkSync(excelPath)
+    !fs.existsSync(excelPath2) ?? fs.unlinkSync(excelPath2)
   })
 
   const createExcel = async (csvPath: string, excelPath: string): Promise<void> => {
