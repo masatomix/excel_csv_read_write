@@ -7,7 +7,7 @@ import { Converters, isCSVData } from '../src/data'
 
 
 describe('テスト', () => {
-  jest.setTimeout(20000);
+  jest.setTimeout(30000);
 
   const url = 'http://jusyo.jp/downloads/new/csv/csv_13tokyo.zip'
   let csvPath = ''
@@ -28,7 +28,7 @@ describe('テスト', () => {
     console.log(`fullPath: ${fullPath}`)
     console.log(`excelPath: ${excelPath}`)
     console.log(`excelPath: ${excelPath2}`)
-  }, 20000)
+  })
 
   it('excel', async () => {
     const results = (await excel2json(excelPath))

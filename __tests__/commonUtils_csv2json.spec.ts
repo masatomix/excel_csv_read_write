@@ -8,7 +8,7 @@ import { assertBasicArray } from './utils'
 
 
 describe('テスト', () => {
-  jest.setTimeout(20000);
+  jest.setTimeout(30000);
   let instances: unknown[]
 
   const url = 'http://jusyo.jp/downloads/new/csv/csv_13tokyo.zip'
