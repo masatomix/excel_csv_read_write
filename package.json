@@ -1,6 +1,6 @@
 {
   "name": "excel-csv-read-write",
-  "version": "0.1.8",
+  "version": "0.1.9-SNAPSHOT",
   "description": "Excel and CSV read write utility.",
   "main": "dist/commonUtils.js",
   "types": "dist/commonUtils.d.ts",
@@ -17,6 +17,7 @@
     "pack": "npm pack",
     "start": "node .",
     "test": "NODE_ENV= jest --coverage --runInBand",
+    "test-actions": "NODE_ENV= jest --runInBand",
     "prepublish": "npm run build"
   },
   "jest": {
