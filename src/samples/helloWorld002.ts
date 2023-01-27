@@ -1,5 +1,6 @@
 import * as fs from 'fs'
 import * as path from 'path'
+import { isConditionalExpression } from 'typescript'
 import { excel2json, json2excel, excelStream2json } from '../commonUtils'
 import { Address } from './data'
 
@@ -22,18 +23,20 @@ import { Address } from './data'
  */
 function sample2() {
   const resultPromise = excel2json('13tokyo.csv.xlsx')
-  resultPromise.then((results: Address[]) => {
+  resultPromise.then(async (results: Address[]) => {
     console.table(results)
-    json2excel(results, path.join('output', '13tokyoResult.xlsx')).then((filePath) => console.log(filePath))
+
+    return await json2excel(results, path.join('output', '13tokyoResult.xlsx')).then((filePath) => console.log(filePath))
   }).catch(error => console.log(error))
 }
 
 function sample21() {
   const stream = fs.createReadStream('13tokyo.csv.xlsx')
   const resultPromise = excelStream2json(stream)
-  resultPromise.then((results) => {
+  resultPromise.then(async (results) => {
     console.table(results)
-    json2excel(results, path.join('output', '13tokyoResult1.xlsx')).then((filePath) => console.log(filePath))
+
+    return await json2excel(results, path.join('output', '13tokyoResult1.xlsx')).then((filePath) => console.log(filePath))
   }).catch(error => console.log(error))
 }
 

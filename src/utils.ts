@@ -8,39 +8,18 @@ export const getAndExtract = async (url: string): Promise<string> => {
   const config: RawAxiosRequestConfig = {
     method: 'get',
     url,
-    responseType: 'stream'
+    responseType: 'stream',
   }
 
   return await axios(config).then(async (response: AxiosResponse) => {
     return await new Promise<string>((resolve, reject) => {
       const stream: IncomingMessage = response.data as IncomingMessage
-      stream.pipe(unzip.Parse())
-        .on('entry', (entry: any): void => {
-          const filePath = entry.path as string
-          entry.pipe(fs.createWriteStream(filePath))
-          entry.on('end', () => {
-            resolve(filePath)
-          })
-        })
+      stream.pipe(unzip.Parse()).on('entry', (entry: unzip.Entry): void => {
+        const filePath = entry.path
+        entry.pipe(fs.createWriteStream(filePath))
+        entry.on('end', () => resolve(filePath)).on('error', (error) => reject(error))
+      })
     })
   })
-
-
-
-
-
-  // // https://www.npmjs.com/package/unzip
-  // return await new Promise((resolve, reject) => {
-  //   http.get(url, (res: http.IncomingMessage) => {
-  //     res.pipe(unzip.Parse()).on('entry', (entry) => {
-  //       entry.pipe(fs.createWriteStream(entry.path))
-  //       entry.on('end', () => resolve())
-  //     })
-  //   })
-
-  //   // const req = require('http').get(url, (res: ReadStream) => {
-  //   //   res.pipe(unzip.Extract({ path: './' }))
-  //   //   res.on('end', () => resolve())
-  //   // })
-  // })
+  // https://www.npmjs.com/package/unzip
 }

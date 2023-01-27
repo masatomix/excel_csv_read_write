@@ -1,6 +1,7 @@
-import { getAndExtract } from './utils'
 import fs from 'fs'
+import { isAddresses } from 'samples/data'
 import { csv2json, excel2json, json2excel } from './commonUtils'
+import { getAndExtract } from './utils'
 
 /**
  * ネットからZIP化されたファイルをダウンロードして解凍、
@@ -41,11 +42,12 @@ function sample2() {
  * csvを読み込むサンプル。データは全部文字列で取得できる。
  */
 async function sample3() {
-  await getAndExtract('http://jusyo.jp/downloads/new/csv/csv_13tokyo.zip')
-  const csvDatas: Array<any> = (await csv2json('./13tokyo.csv')).filter((address) =>
-    address['郵便番号'].startsWith('100-000'),
-  )
-  console.table(csvDatas)
+  const csvPath = await getAndExtract('http://jusyo.jp/downloads/new/csv/csv_13tokyo.zip')
+  const instances = await csv2json(csvPath)
+  if (isAddresses(instances)) {
+    const csvDatas: any[] = instances.filter((address) => address['郵便番号'].startsWith('100-000'))
+    console.table(csvDatas)
+  }
 }
 
 /**
@@ -53,12 +55,12 @@ async function sample3() {
  * 今時点、日付などは適切にフォーマット変換が必要みたいだ
  */
 async function sample4() {
-  const excelDatas: Array<any> = await excel2json('input.xlsx')
+  const excelDatas: any[] = await excel2json('input.xlsx')
   console.table(excelDatas)
 }
 
 async function sample5() {
-  let robots: Array<any> = await csv2json('robotSample.csv')
+  let robots: any[] = await csv2json('robotSample.csv')
   robots = robots.map((robot) => Object.assign({}, robot, { now: new Date() })) // 日付列を追加
   console.table(robots)
 

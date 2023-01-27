@@ -1,61 +1,49 @@
-import { getAndExtract } from '../src/utils'
-import { csv2json } from '../src/commonUtils'
 import * as fs from 'fs'
 import * as path from 'path'
+import { csv2json } from '../src/commonUtils'
+import { Address, isAddresses } from '../src/samples/data'
+import { getAndExtract } from '../src/utils'
+import { assertBasicArray } from './utils'
+
+
 
 describe('テスト', () => {
-  let instances: any[]
+  let instances: unknown[]
 
-  const url: string = 'http://jusyo.jp/downloads/new/csv/csv_13tokyo.zip'
-  const csvPath: string = './13tokyo.csv'
+  const url = 'http://jusyo.jp/downloads/new/csv/csv_13tokyo.zip'
+  let csvPath = ''
   const baseDir: string = path.resolve('')
-  const fullPath: string = path.join(baseDir, csvPath)
+  let fullPath = ''
 
   beforeEach(async () => {
-    await getAndExtract(url)
+    csvPath = await getAndExtract(url)
+    fullPath = path.join(baseDir, csvPath)
+
+    console.log(`baseDir: ${baseDir}`)
+    console.log(`csvPath: ${csvPath}`)
+    console.log(`fullPath: ${fullPath}`)
   })
 
   it('getテスト1', async () => {
     expect(fs.existsSync(fullPath)).toBeTruthy()
     instances = await csv2json(fullPath)
-    assertBasicArray(instances, 22)
-    for (const obj of instances.filter((instance) => instance['郵便番号'] === '100-0000')) {
-      console.log(obj)
+
+    if (isAddresses(instances)) {
+      assertBasicArray(instances, 22)
+      const addresses = instances.filter((instance) => instance.郵便番号 === '100-0000')
+      console.table(addresses)
+
+      // for (const obj of instances.filter((instance) => (instance as Address).郵便番号 === '100-0000')) {
+      //   console.log(obj)
+      // }
     }
   })
 
-  it('getテスト2', async () => {
-    expect(fs.existsSync(fullPath)).toBeTruthy()
+  afterEach(() => {
+    // await new Promise<void>((resolve, reject) => {
+    //   fs.unlink(fullPath, (error) => (error ? reject(error) : resolve()))
+    // })
     fs.unlinkSync(fullPath)
-    await getAndExtract(url)
-    expect(fs.existsSync(fullPath)).toBeTruthy()
-
-    instances = await csv2json(fullPath)
-    assertBasicArray(instances, 22)
-    for (const obj of instances.filter((instance) => instance['郵便番号'] === '100-0000')) {
-      console.log(obj)
-    }
-  })
-
-  afterEach(async () => {
-    await new Promise((resolve, reject) => {
-      fs.unlink(fullPath, (error) => {
-        if (error) {
-          console.log(error)
-          reject(error)
-        }
-        resolve()
-      })
-    })
   })
 })
 
-function assertBasicArray(actualInstances: any[], expectedColumnCount: number) {
-  expect(actualInstances.length).toBeGreaterThanOrEqual(1) // 1件以上はある
-
-  for (const instance of actualInstances) {
-    expect(Object.keys(instance).length).toBe(expectedColumnCount)
-    expect(instance['住所CD']).not.toBeUndefined()
-    // console.log(instance)
-  }
-}

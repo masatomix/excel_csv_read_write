@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import * as csv from 'csvtojson'
+import { CSVData } from 'data'
 import * as iconv from 'iconv-lite'
 import * as JSZip from 'jszip'
 import * as XlsxPopulate from 'xlsx-populate'
@@ -19,16 +20,13 @@ const logger = getLogger('main')
 export const excel2json = async (
   inputFullPath: string,
   sheetName = 'Sheet1',
-  format_func?: (instance: unknown) => unknown,
+  format_func?: (instance: CSVData) => CSVData,
 ): Promise<any[]> => {
   const promise = new JSZip.external.Promise<Buffer>((resolve, reject) => {
-    fs.readFile(inputFullPath, (err, data) => {
-      if (err) return reject(err)
-      resolve(data)
-    })
+    fs.readFile(inputFullPath, (err, data) => (err ? reject(err) : resolve(data)))
   }).then(async (data: Buffer) => await XlsxPopulate.fromDataAsync(data))
 
-  return await excelData2json(await promise, sheetName, format_func)
+  return excelData2json(await promise, sheetName, format_func)
 
   // 安定しないので、いったん処理変更
   // const stream: ReadStream = fs.createReadStream(inputFullPath)
@@ -44,7 +42,7 @@ export const excel2json = async (
 export const excelStream2json = async (
   stream: NodeJS.ReadableStream,
   sheetName = 'Sheet1',
-  format_func?: (instance: any) => any,
+  format_func?: (instance: CSVData) => CSVData,
 ): Promise<any[]> => {
   // cf:https://qiita.com/masakura/items/5683e8e3e655bfda6756
   const promise = new JSZip.external.Promise((resolve, reject) => {
@@ -52,8 +50,9 @@ export const excelStream2json = async (
     stream.on('data', (data) => (buf = data)).on('end', () => resolve(buf))
   }).then(async (buf: any) => await XlsxPopulate.fromDataAsync(buf))
 
-  return await excelData2json(await promise, sheetName, format_func)
+  return excelData2json(await promise, sheetName, format_func)
 }
+
 
 /**
  * Excelファイルを読み込み、各行をデータとして配列で返すメソッド。
@@ -61,18 +60,17 @@ export const excelStream2json = async (
  * @param sheetName
  * @param format_func フォーマット関数。instanceは各行データが入ってくるので、任意に整形して返せばよい
  */
-export const excelData2json = async (
-  data: any,
+export const excelData2json = (
+  workbook: XlsxPopulate.Workbook,
   sheetName = 'Sheet1',
-  format_func?: (instance: any) => any,
-): Promise<any[]> => {
-  const workbook: any = data
+  format_func?: (instance: CSVData) => CSVData,
+): CSVData[] => {
   const headings: string[] = getHeaders(workbook, sheetName)
   // console.log(headings.length)
-  const valuesArray: any[][] = getValuesArray(workbook, sheetName)
+  const valuesArray: unknown[][] = getValuesArray(workbook, sheetName)
 
-  const instances = valuesArray.map((values: any[]) => {
-    return values.reduce((box: any, column: any, index: number) => {
+  const instances = valuesArray.map((values: unknown[]) => {
+    return values.reduce((box: CSVData, column: unknown, index: number) => {
       // 列単位で処理してきて、ヘッダの名前で代入する。
       box[headings[index]] = column
 
@@ -92,8 +90,8 @@ export const excelData2json = async (
  * 全行読み込んだら完了する Promise を返す。
  * @param filePath
  */
-export const csv2json = async (filePath: string): Promise<any[]> => {
-  return await csvStream2json(fs.createReadStream(filePath))
+export const csv2json = async (filePath: string, encoding = 'Shift_JIS'): Promise<unknown[]> => {
+  return await csvStream2json(fs.createReadStream(filePath), encoding)
   // return new Promise((resolve, reject) => {
   //   const datas: any[] = []
 
@@ -110,17 +108,20 @@ export const csv2json = async (filePath: string): Promise<any[]> => {
  * 全行読み込んだら完了する Promise を返す。
  * @param fs
  */
-export const csvStream2json = async (stream: NodeJS.ReadableStream): Promise<any[]> => {
-  return await new Promise((resolve, reject) => {
-    const datas: any[] = []
+export const csvStream2json = async (stream: NodeJS.ReadableStream, encoding = 'Shift_JIS'): Promise<unknown[]> => {
+  return await new Promise<unknown[]>((resolve, reject) => {
+    const datas: unknown[] = []
 
     stream
-      .pipe(iconv.decodeStream('Shift_JIS'))
+      .pipe(iconv.decodeStream(encoding))
       .pipe(iconv.encodeStream('utf-8'))
-      .pipe(csv().on('data', (data) => datas.push(JSON.parse(data))))
+      .pipe(
+        csv()
+          .on('data', (data) => datas.push(Buffer.isBuffer(data) ? JSON.parse(data.toString()) : JSON.parse(data)))
+          // .on('done', (error) => (error ? reject(error) : resolve(datas)))
+          .on('error', (error) => reject(error)),
+      )
       .on('end', () => resolve(datas))
-    // const row = Buffer.isBuffer(data) ? JSON.parse(data.toString()) : JSON.parse(data)
-
   })
 }
 
@@ -145,7 +146,7 @@ export const json2excel = async (
   // console.table(instances)
 
   let headings: string[] = [] // ヘッダ名の配列
-  let workbook: any
+  let workbook: XlsxPopulate.Workbook
   const fileIsNew: boolean = templateFullPath === '' // templateが指定されない場合新規(fileIsNew = true)、そうでない場合テンプレファイルに出力
 
   if (!fileIsNew) {
@@ -161,16 +162,16 @@ export const json2excel = async (
   }
 
   if (instances.length > 0) {
-    const csvArrays: any[][] = createCsvArrays(headings, instances, converters)
+    const csvArrays: unknown[][] = createCsvArrays(headings, instances, converters)
     // console.table(csvArrays)
     const rowCount = instances.length
     const columnCount = headings.length
     const sheet = workbook.sheet(sheetName)
 
     if (!fileIsNew && sheet.usedRange()) {
-      sheet.usedRange().clear() // Excel上のデータを削除して。
+      sheet.usedRange()?.clear() // Excel上のデータを削除して。
     }
-    sheet.cell('A1').value(csvArrays)
+    sheet.cell('A1').value(csvArrays as unknown as string)
 
     // データがあるところには罫線を引く(細いヤツ)
     const startCell = sheet.cell('A1')
@@ -254,8 +255,7 @@ export const json2excelBlob = async (
   return blob
 }
 
-const toFullPath = (str: string): string => path.isAbsolute(str) ? str : path.join(path.resolve(''), str)
-
+const toFullPath = (str: string): string => (path.isAbsolute(str) ? str : path.join(path.resolve(''), str))
 
 // 自前実装
 function createCsvArrays(headings: string[], instances: any[], converters?: any): any[][] {
@@ -264,9 +264,11 @@ function createCsvArrays(headings: string[], instances: any[], converters?: any)
     const csvArray = headings.reduce((box: any[], header: string): any[] => {
       // console.log(`${instance[header]}: ${instance[header] instanceof Object}`)
       // console.log(converters)
-      if (converters && converters[header]) {  // header名に合致するConverterがある場合はそれ優先で適用
+      if (converters && converters[header]) {
+        // header名に合致するConverterがある場合はそれ優先で適用
         box.push(converters[header](instance[header]))
-      } else if (instance[header] instanceof Object) { // Converterがない場合は、文字列に変換
+      } else if (instance[header] instanceof Object) {
+        // Converterがない場合は、文字列に変換
         box.push(JSON.stringify(instance[header]))
       } else {
         box.push(instance[header]) // あとはそのまま
