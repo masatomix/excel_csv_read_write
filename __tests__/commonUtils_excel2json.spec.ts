@@ -7,7 +7,9 @@ import { Address } from '../src/samples/data'
 
 
 describe('テスト', () => {
-  let instances: any[]
+  jest.setTimeout(20000);
+
+  // let instances: any[]
 
   const url = 'http://jusyo.jp/downloads/new/csv/csv_13tokyo.zip'
   let csvPath = ''
