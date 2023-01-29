@@ -9,7 +9,6 @@ import { assertBasicArray } from './utils'
 
 describe('テスト', () => {
   jest.setTimeout(30000);
-  let instances: unknown[]
 
   const url = 'http://jusyo.jp/downloads/new/csv/csv_13tokyo.zip'
   let csvPath = ''
@@ -27,7 +26,8 @@ describe('テスト', () => {
 
   it('getテスト1', async () => {
     expect(fs.existsSync(fullPath)).toBeTruthy()
-    instances = await csv2json(fullPath)
+
+    const instances = await csv2json(fullPath)
 
     if (isAddresses(instances)) {
       assertBasicArray(instances, 22)
@@ -44,7 +44,7 @@ describe('テスト', () => {
     // await new Promise<void>((resolve, reject) => {
     //   fs.unlink(fullPath, (error) => (error ? reject(error) : resolve()))
     // })
-    fs.unlinkSync(fullPath)
+    !fs.existsSync(fullPath) ?? fs.unlinkSync(fullPath)
   })
 })
 
