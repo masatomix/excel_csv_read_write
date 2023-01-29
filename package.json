@@ -1,6 +1,6 @@
 {
   "name": "excel-csv-read-write",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Excel and CSV read write utility.",
   "main": "dist/commonUtils.js",
   "types": "dist/commonUtils.d.ts",
@@ -10,13 +10,14 @@
     "lint:es": "eslint 'src/**/*.{js,jsx,ts,tsx}'",
     "lint:es:fix": "eslint --fix 'src/**/*.{js,jsx,ts,tsx}'",
     "lint": "eslint . --ext .ts,.tsx",
-    "clean:modules": "rimraf node_modules/*",
-    "clean": "rimraf dist/*",
+    "clean:modules": "rimraf node_modules",
+    "clean": "rimraf dist",
     "tsc": "tsc",
     "build": "npm-run-all clean tsc",
     "pack": "npm pack",
     "start": "node .",
     "test": "NODE_ENV= jest --coverage --runInBand",
+    "test-actions": "NODE_ENV= jest --runInBand",
     "prepublish": "npm run build"
   },
   "jest": {

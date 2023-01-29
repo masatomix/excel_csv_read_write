@@ -20,6 +20,7 @@
 ## Revision history
 
 改訂履歴
+- 0.1.9 TypeScriptをなるべく使うように修正中
 - 0.1.3 処理の調整
 - 0.1.2 Streamを処理できるよう処理変更
 - 0.1.1 初版作成
@@ -36,7 +37,7 @@ Give a ⭐️ if this project helped you!
 
 ## License
 
-Copyright © 2020 [Masatomi KINO](https://github.com/masatomix).<br />
+Copyright © 2023 [Masatomi KINO](https://github.com/masatomix).<br />
 This project is [Apache--2.0](https://github.com/masatomix/excel-csv-read-write/blob/master/LICENSE) licensed.
 
 ***
