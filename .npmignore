@@ -1,4 +1,5 @@
 *.xlsx
+*.csv
 .github/
 attic/
 config/
