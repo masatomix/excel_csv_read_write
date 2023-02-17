@@ -139,7 +139,7 @@ export const json2excel = async (
   templateFullPath = '',
   sheetName = 'Sheet1',
   converters?: Converters,
-  applyStyles?: (instances: any[], workbook: XlsxPopulate.Workbook, sheetName: string) => void,
+  applyStyles?: (instances: unknown[], workbook: XlsxPopulate.Workbook, sheetName: string) => void,
 ): Promise<string> => {
   logger.debug(`template path: ${templateFullPath}`)
   // console.log(instances[0])
@@ -200,16 +200,6 @@ export const json2excel = async (
   return toFullPath(outputFullPath)
 }
 
-export type Props = {
-  instances: unknown[]
-  workbook?: XlsxPopulate.Workbook
-  // outputFullPath: string,
-  // templateFullPath = '',
-  sheetName?: string
-  converters?: Converters
-  applyStyles?: (instances: any[], workbook: XlsxPopulate.Workbook, sheetName: string) => void
-}
-
 
 /**
  * 引数のJSON配列を、指定したテンプレートを用いて、指定したファイルに出力します。
@@ -218,77 +208,83 @@ export type Props = {
  * @param sheetName テンプレートExcelのシート名(シート名で出力する)
  * @param applyStyles 出力時のExcelを書式フォーマットしたい場合に使用する。
  */
-export const json2wookbook: (arg: Props) => Promise<XlsxPopulate.Workbook> = async ({
+export const json2wookbook: (arg: {
+  instances: unknown[];
+  workbook?: XlsxPopulate.Workbook;
+  sheetName?: string;
+  converters?: Converters;
+  applyStyles?: (instances: unknown[], workbook: XlsxPopulate.Workbook, sheetName: string) => void;
+}) => Promise<XlsxPopulate.Workbook> = async ({
   instances,
   workbook,
   sheetName = 'Sheet1',
   converters,
   applyStyles,
 }): Promise<XlsxPopulate.Workbook> => {
-  // logger.debug(`template path: ${templateFullPath}`)
-  // console.log(instances[0])
-  // console.table(instances)
+    // logger.debug(`template path: ${templateFullPath}`)
+    // console.log(instances[0])
+    // console.table(instances)
 
-  let headings: string[] = [] // ヘッダ名の配列
-  // let workbook: XlsxPopulate.Workbook
-  // const fileIsNew: boolean = templateFullPath === '' // templateが指定されない場合新規(fileIsNew = true)、そうでない場合テンプレファイルに出力
-  // if (fs.existsSync(outputFullPath)) {
-  //   workbook = await XlsxPopulate.fromFileAsync(outputFullPath)
-  //   if (instances.length > 0) {
-  //     headings = Object.keys(instances[0] as CSVData)
-  //   }
-  // } else
-  // if (!fileIsNew) {
-  // 指定された場合は、一行目の文字列群を使ってプロパティを作成する
-  // workbook = await XlsxPopulate.fromFileAsync(templateFullPath)
-  // headings = getHeaders(workbook, sheetName)
-  // } else {
-  // templateが指定されない場合は、空ファイルをつくり、オブジェクトのプロパティでダンプする。
-  if (!workbook) {
-    workbook = await XlsxPopulate.fromBlankAsync()
-  }
-  // }
-
-  if (instances.length > 0) {
-    headings = Object.keys(instances[0] as CSVData)
-    const csvArrays: unknown[][] = createCsvArrays(headings, instances, converters)
-    // console.table(csvArrays)
-    const rowCount = instances.length
-    const columnCount = headings.length
-    const sheet = workbook.sheet(sheetName) ?? workbook.addSheet(sheetName)
-
-    // if (!fileIsNew && sheet.usedRange()) {
-    // sheet.usedRange()?.clear() // Excel上のデータを削除して。
-    // }
-    sheet.cell('A1').value(csvArrays as unknown as string)
-
-    // データがあるところには罫線を引く(細いヤツ)
-    const startCell = sheet.cell('A1')
-    const endCell = startCell.relativeCell(rowCount, columnCount - 1)
-
-    sheet.range(startCell, endCell).style('border', {
-      top: { style: 'hair' },
-      left: { style: 'hair' },
-      bottom: { style: 'hair' },
-      right: { style: 'hair' },
-    })
-
-    // よくある整形パタン。
-    // sheet.range(`C2:C${rowCount + 1}`).style('numberFormat', '@') // 書式: 文字(コレをやらないと、見かけ上文字だが、F2で抜けると数字になっちゃう)
-    // sheet.range(`E2:F${rowCount + 1}`).style('numberFormat', 'yyyy/mm/dd') // 書式: 日付
-    // sheet.range(`H2:H${rowCount + 1}`).style('numberFormat', 'yyyy/mm/dd hh:mm') // 書式: 日付+時刻
-
-    if (applyStyles) {
-      applyStyles(instances, workbook, sheetName)
+    let headings: string[] = [] // ヘッダ名の配列
+    // let workbook: XlsxPopulate.Workbook
+    // const fileIsNew: boolean = templateFullPath === '' // templateが指定されない場合新規(fileIsNew = true)、そうでない場合テンプレファイルに出力
+    // if (fs.existsSync(outputFullPath)) {
+    //   workbook = await XlsxPopulate.fromFileAsync(outputFullPath)
+    //   if (instances.length > 0) {
+    //     headings = Object.keys(instances[0] as CSVData)
+    //   }
+    // } else
+    // if (!fileIsNew) {
+    // 指定された場合は、一行目の文字列群を使ってプロパティを作成する
+    // workbook = await XlsxPopulate.fromFileAsync(templateFullPath)
+    // headings = getHeaders(workbook, sheetName)
+    // } else {
+    // templateが指定されない場合は、空ファイルをつくり、オブジェクトのプロパティでダンプする。
+    if (!workbook) {
+      workbook = await XlsxPopulate.fromBlankAsync()
     }
-  }
+    // }
 
-  // logger.debug(outputFullPath)
-  // await workbook.toFileAsync(outputFullPath)
-  //
-  // return toFullPath(outputFullPath)
-  return workbook
-}
+    if (instances.length > 0) {
+      headings = Object.keys(instances[0] as CSVData)
+      const csvArrays: unknown[][] = createCsvArrays(headings, instances, converters)
+      // console.table(csvArrays)
+      const rowCount = instances.length
+      const columnCount = headings.length
+      const sheet = workbook.sheet(sheetName) ?? workbook.addSheet(sheetName)
+
+      // if (!fileIsNew && sheet.usedRange()) {
+      // sheet.usedRange()?.clear() // Excel上のデータを削除して。
+      // }
+      sheet.cell('A1').value(csvArrays as unknown as string)
+
+      // データがあるところには罫線を引く(細いヤツ)
+      const startCell = sheet.cell('A1')
+      const endCell = startCell.relativeCell(rowCount, columnCount - 1)
+
+      sheet.range(startCell, endCell).style('border', {
+        top: { style: 'hair' },
+        left: { style: 'hair' },
+        bottom: { style: 'hair' },
+        right: { style: 'hair' },
+      })
+
+      // よくある整形パタン。
+      // sheet.range(`C2:C${rowCount + 1}`).style('numberFormat', '@') // 書式: 文字(コレをやらないと、見かけ上文字だが、F2で抜けると数字になっちゃう)
+      // sheet.range(`E2:F${rowCount + 1}`).style('numberFormat', 'yyyy/mm/dd') // 書式: 日付
+      // sheet.range(`H2:H${rowCount + 1}`).style('numberFormat', 'yyyy/mm/dd hh:mm') // 書式: 日付+時刻
+
+      if (applyStyles) {
+        applyStyles(instances, workbook, sheetName)
+      }
+    }
+
+    // logger.debug(outputFullPath)
+    // await workbook.toFileAsync(outputFullPath)
+    //
+    // return toFullPath(outputFullPath)
+    return workbook
+  }
 
 /**
  * 引数のJSON配列を、指定したテンプレートを用いて、指定したファイルに出力します。
@@ -300,7 +296,7 @@ export const json2excelBlob = async (
   instances: unknown[],
   sheetName = 'Sheet1',
   converters?: Converters,
-  applyStyles?: (instances: any[], workbook: XlsxPopulate.Workbook, sheetName: string) => void,
+  applyStyles?: (instances: unknown[], workbook: XlsxPopulate.Workbook, sheetName: string) => void,
 ): Promise<Blob> => {
   let headings: string[] = [] // ヘッダ名の配列
   const workbook = await XlsxPopulate.fromBlankAsync()
