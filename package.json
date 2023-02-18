@@ -1,11 +1,11 @@
 {
   "name": "excel-csv-read-write",
-  "version": "0.1.10-SNAPSHOT",
+  "version": "0.1.11-SNAPSHOT",
   "description": "Excel and CSV read write utility.",
   "main": "dist/commonUtils.js",
   "types": "dist/commonUtils.d.ts",
   "scripts": {
-    "dev": "ts-node src/index.ts",
+    "dev": "ts-node src/commonUtils.ts",
     "dev:watch": "ts-node-dev --respawn src/index.ts",
     "lint:es": "eslint 'src/**/*.{js,jsx,ts,tsx}'",
     "lint:es:fix": "eslint --fix 'src/**/*.{js,jsx,ts,tsx}'",

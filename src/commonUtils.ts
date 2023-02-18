@@ -1,10 +1,10 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import * as csv from 'csvtojson'
-import { Converters, CSVData } from 'data'
 import * as iconv from 'iconv-lite'
 import * as JSZip from 'jszip'
 import * as XlsxPopulate from 'xlsx-populate'
+import { Converters, CSVData } from './data'
 import { getLogger } from './logger'
 // const XlsxPopulate = require('xlsx-populate')
 
@@ -20,13 +20,13 @@ const logger = getLogger('main')
 export const excel2json = async (
   inputFullPath: string,
   sheetName = 'Sheet1',
-  format_func?: (instance: CSVData) => CSVData,
+  formatFunc?: (instance: CSVData) => CSVData,
 ): Promise<unknown[]> => {
   const promise = new JSZip.external.Promise<Buffer>((resolve, reject) => {
     fs.readFile(inputFullPath, (err, data) => (err ? reject(err) : resolve(data)))
   }).then(async (data: Buffer) => await XlsxPopulate.fromDataAsync(data))
 
-  return excelData2json(await promise, sheetName, format_func)
+  return excelData2json(await promise, sheetName, formatFunc)
 
   // 安定しないので、いったん処理変更
   // const stream: ReadStream = fs.createReadStream(inputFullPath)
@@ -42,15 +42,15 @@ export const excel2json = async (
 export const excelStream2json = async (
   stream: NodeJS.ReadableStream,
   sheetName = 'Sheet1',
-  format_func?: (instance: CSVData) => CSVData,
+  formatFunc?: (instance: CSVData) => CSVData,
 ): Promise<unknown[]> => {
   // cf:https://qiita.com/masakura/items/5683e8e3e655bfda6756
-  const promise = new JSZip.external.Promise((resolve, reject) => {
+  const promise = new JSZip.external.Promise((resolve, _) => {
     let buf: any
     stream.on('data', (data) => (buf = data)).on('end', () => resolve(buf))
   }).then(async (buf: any) => await XlsxPopulate.fromDataAsync(buf))
 
-  return excelData2json(await promise, sheetName, format_func)
+  return excelData2json(await promise, sheetName, formatFunc)
 }
 
 
@@ -63,7 +63,7 @@ export const excelStream2json = async (
 export const excelData2json = (
   workbook: XlsxPopulate.Workbook,
   sheetName = 'Sheet1',
-  format_func?: (instance: CSVData) => CSVData,
+  formatFunc?: (instance: CSVData) => CSVData,
 ): CSVData[] => {
   const headings: string[] = getHeaders(workbook, sheetName)
   // console.log(headings.length)
@@ -78,8 +78,8 @@ export const excelData2json = (
     }, {})
   })
 
-  if (format_func) {
-    return instances.map((instance) => format_func(instance))
+  if (formatFunc) {
+    return instances.map((instance) => formatFunc(instance))
   }
 
   return instances
@@ -200,6 +200,20 @@ export const json2excel = async (
   return toFullPath(outputFullPath)
 }
 
+export const createWorkbook = async (path?: string): Promise<XlsxPopulate.Workbook> => {
+  return (path != null) ? await XlsxPopulate.fromFileAsync(path) : await XlsxPopulate.fromBlankAsync()
+}
+
+
+export const toFileAsync = async (workbook: XlsxPopulate.Workbook, path: string): Promise<void> => {
+  logger.debug(path)
+
+  return await workbook.toFileAsync(path)
+
+  // return toFullPath(path)
+}
+
+
 
 /**
  * 引数のJSON配列を、指定したテンプレートを用いて、指定したファイルに出力します。
@@ -210,17 +224,18 @@ export const json2excel = async (
  */
 export const json2wookbook: (arg: {
   instances: unknown[];
-  workbook?: XlsxPopulate.Workbook;
+  workbook: XlsxPopulate.Workbook;
   sheetName?: string;
   converters?: Converters;
   applyStyles?: (instances: unknown[], workbook: XlsxPopulate.Workbook, sheetName: string) => void;
-}) => Promise<XlsxPopulate.Workbook> = async ({
+}) => XlsxPopulate.Workbook = ({
   instances,
   workbook,
   sheetName = 'Sheet1',
   converters,
   applyStyles,
-}): Promise<XlsxPopulate.Workbook> => {
+}): XlsxPopulate.Workbook => {
+
     // logger.debug(`template path: ${templateFullPath}`)
     // console.log(instances[0])
     // console.table(instances)
@@ -240,9 +255,9 @@ export const json2wookbook: (arg: {
     // headings = getHeaders(workbook, sheetName)
     // } else {
     // templateが指定されない場合は、空ファイルをつくり、オブジェクトのプロパティでダンプする。
-    if (!workbook) {
-      workbook = await XlsxPopulate.fromBlankAsync()
-    }
+    // if (!workbook) {
+    // workbook = await XlsxPopulate.fromBlankAsync()
+    // }
     // }
 
     if (instances.length > 0) {
@@ -252,6 +267,7 @@ export const json2wookbook: (arg: {
       const rowCount = instances.length
       const columnCount = headings.length
       const sheet = workbook.sheet(sheetName) ?? workbook.addSheet(sheetName)
+
 
       // if (!fileIsNew && sheet.usedRange()) {
       // sheet.usedRange()?.clear() // Excel上のデータを削除して。
