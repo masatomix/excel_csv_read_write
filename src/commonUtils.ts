@@ -214,7 +214,7 @@ export const toFileAsync = async (workbook: XlsxPopulate.Workbook, path: string)
  * @param sheetName テンプレートExcelのシート名(シート名で出力する)
  * @param applyStyles 出力時のExcelを書式フォーマットしたい場合に使用する。
  */
-export const json2wookbook: (arg: {
+export const json2workbook: (arg: {
   instances: unknown[];
   workbook: XlsxPopulate.Workbook;
   sheetName?: string;
