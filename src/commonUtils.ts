@@ -93,15 +93,6 @@ export const excelData2json = (
  */
 export const csv2json = async (filePath: string, encoding = 'Shift_JIS'): Promise<unknown[]> => {
   return await csvStream2json(fs.createReadStream(filePath), encoding)
-  // return new Promise((resolve, reject) => {
-  //   const datas: any[] = []
-
-  //   fs.createReadStream(filePath)
-  //     .pipe(iconv.decodeStream('Shift_JIS'))
-  //     .pipe(iconv.encodeStream('utf-8'))
-  //     .pipe(csv().on('data', (data) => datas.push(JSON.parse(data))))
-  //     .on('end', () => resolve(datas))
-  // })
 }
 
 /**
@@ -118,7 +109,7 @@ export const csvStream2json = async (stream: NodeJS.ReadableStream, encoding = '
       .pipe(iconv.encodeStream('utf-8'))
       .pipe(
         csv()
-          .on('data', (data) => datas.push(Buffer.isBuffer(data) ? JSON.parse(data.toString()) : JSON.parse(data)))
+          .on('data', (data: Buffer) => datas.push(Buffer.isBuffer(data) ? JSON.parse(data.toString()) : JSON.parse(data)))
           // .on('done', (error) => (error ? reject(error) : resolve(datas)))
           .on('error', (error) => reject(error)),
       )
