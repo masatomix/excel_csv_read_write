@@ -113,7 +113,7 @@ export const csvStream2json = async (stream: NodeJS.ReadableStream, encoding = '
   return await new Promise<unknown[]>((resolve, reject) => {
     const datas: unknown[] = []
 
-    stream
+    void stream
       .pipe(iconv.decodeStream(encoding))
       .pipe(iconv.encodeStream('utf-8'))
       .pipe(
