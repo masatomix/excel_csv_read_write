@@ -15,22 +15,23 @@ const logger = getLogger('main')
  * @param path Excelファイルパス
  * @param sheet シート名
  * @param sheetName
- * @param format_func フォーマット関数。instanceは各行データが入ってくるので、任意に整形して返せばよい
+ * @param formatFunc フォーマット関数。instanceは各行データが入ってくるので、任意に整形して返せばよい
  */
 export const excel2json = async (
   inputFullPath: string,
   sheetName = 'Sheet1',
   formatFunc?: (instance: CSVData) => CSVData,
 ): Promise<unknown[]> => {
-  const promise = new JSZip.external.Promise<Buffer>((resolve, reject) => {
-    fs.readFile(inputFullPath, (err, data) => (err ? reject(err) : resolve(data)))
-  }).then(async (data: Buffer) => await XlsxPopulate.fromDataAsync(data))
+  // const promise = new JSZip.external.Promise<Buffer>((resolve, reject) => {
+  //   fs.readFile(inputFullPath, (err, data) => (err ? reject(err) : resolve(data)))
+  // }).then(async (data: Buffer) => await XlsxPopulate.fromDataAsync(data))
 
-  return excelData2json(await promise, sheetName, formatFunc)
+  // return excelData2json(await promise, sheetName, formatFunc)
 
-  // 安定しないので、いったん処理変更
-  // const stream: ReadStream = fs.createReadStream(inputFullPath)
-  // return excelStream2json(stream, sheetName, format_func)
+
+  const stream = fs.createReadStream(inputFullPath)
+
+  return await excelStream2json(stream, sheetName, formatFunc)
 }
 
 /**
@@ -45,10 +46,10 @@ export const excelStream2json = async (
   formatFunc?: (instance: CSVData) => CSVData,
 ): Promise<unknown[]> => {
   // cf:https://qiita.com/masakura/items/5683e8e3e655bfda6756
-  const promise = new JSZip.external.Promise((resolve, _) => {
-    let buf: any
-    stream.on('data', (data) => (buf = data)).on('end', () => resolve(buf))
-  }).then(async (buf: any) => await XlsxPopulate.fromDataAsync(buf))
+  const promise = new JSZip.external.Promise<Buffer>((resolve, _) => {
+    const buffers: Buffer[] = []
+    stream.on('data', (data: Buffer) => buffers.push(data)).on('end', () => resolve(Buffer.concat(buffers)))
+  }).then(async (buf: Buffer) => await XlsxPopulate.fromDataAsync(buf))
 
   return excelData2json(await promise, sheetName, formatFunc)
 }
@@ -58,7 +59,7 @@ export const excelStream2json = async (
  * Excelファイルを読み込み、各行をデータとして配列で返すメソッド。
  * @param stream
  * @param sheetName
- * @param format_func フォーマット関数。instanceは各行データが入ってくるので、任意に整形して返せばよい
+ * @param formatFunc フォーマット関数。instanceは各行データが入ってくるので、任意に整形して返せばよい
  */
 export const excelData2json = (
   workbook: XlsxPopulate.Workbook,
