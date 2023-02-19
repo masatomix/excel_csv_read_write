@@ -26,5 +26,5 @@ export const isCSVDatas = (arg: unknown): arg is CSVData[] => {
 
 export interface Converters {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: (value: any) => any
+    [key: string]: (value?: any) => any
 }

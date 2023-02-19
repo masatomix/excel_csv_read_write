@@ -1,10 +1,10 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import * as csv from 'csvtojson'
-import { Converters, CSVData } from 'data'
 import * as iconv from 'iconv-lite'
 import * as JSZip from 'jszip'
 import * as XlsxPopulate from 'xlsx-populate'
+import { Converters, CSVData } from './data'
 import { getLogger } from './logger'
 // const XlsxPopulate = require('xlsx-populate')
 
@@ -15,22 +15,23 @@ const logger = getLogger('main')
  * @param path Excelファイルパス
  * @param sheet シート名
  * @param sheetName
- * @param format_func フォーマット関数。instanceは各行データが入ってくるので、任意に整形して返せばよい
+ * @param formatFunc フォーマット関数。instanceは各行データが入ってくるので、任意に整形して返せばよい
  */
 export const excel2json = async (
   inputFullPath: string,
   sheetName = 'Sheet1',
-  format_func?: (instance: CSVData) => CSVData,
+  formatFunc?: (instance: CSVData) => CSVData,
 ): Promise<unknown[]> => {
-  const promise = new JSZip.external.Promise<Buffer>((resolve, reject) => {
-    fs.readFile(inputFullPath, (err, data) => (err ? reject(err) : resolve(data)))
-  }).then(async (data: Buffer) => await XlsxPopulate.fromDataAsync(data))
+  // const promise = new JSZip.external.Promise<Buffer>((resolve, reject) => {
+  //   fs.readFile(inputFullPath, (err, data) => (err ? reject(err) : resolve(data)))
+  // }).then(async (data: Buffer) => await XlsxPopulate.fromDataAsync(data))
 
-  return excelData2json(await promise, sheetName, format_func)
+  // return excelData2json(await promise, sheetName, formatFunc)
 
-  // 安定しないので、いったん処理変更
-  // const stream: ReadStream = fs.createReadStream(inputFullPath)
-  // return excelStream2json(stream, sheetName, format_func)
+
+  const stream = fs.createReadStream(inputFullPath)
+
+  return await excelStream2json(stream, sheetName, formatFunc)
 }
 
 /**
@@ -42,15 +43,15 @@ export const excel2json = async (
 export const excelStream2json = async (
   stream: NodeJS.ReadableStream,
   sheetName = 'Sheet1',
-  format_func?: (instance: CSVData) => CSVData,
+  formatFunc?: (instance: CSVData) => CSVData,
 ): Promise<unknown[]> => {
   // cf:https://qiita.com/masakura/items/5683e8e3e655bfda6756
-  const promise = new JSZip.external.Promise((resolve, reject) => {
-    let buf: any
-    stream.on('data', (data) => (buf = data)).on('end', () => resolve(buf))
-  }).then(async (buf: any) => await XlsxPopulate.fromDataAsync(buf))
+  const promise = new JSZip.external.Promise<Buffer>((resolve, _) => {
+    const buffers: Buffer[] = []
+    stream.on('data', (data: Buffer) => buffers.push(data)).on('end', () => resolve(Buffer.concat(buffers)))
+  }).then(async (buf: Buffer) => await XlsxPopulate.fromDataAsync(buf))
 
-  return excelData2json(await promise, sheetName, format_func)
+  return excelData2json(await promise, sheetName, formatFunc)
 }
 
 
@@ -58,12 +59,12 @@ export const excelStream2json = async (
  * Excelファイルを読み込み、各行をデータとして配列で返すメソッド。
  * @param stream
  * @param sheetName
- * @param format_func フォーマット関数。instanceは各行データが入ってくるので、任意に整形して返せばよい
+ * @param formatFunc フォーマット関数。instanceは各行データが入ってくるので、任意に整形して返せばよい
  */
 export const excelData2json = (
   workbook: XlsxPopulate.Workbook,
   sheetName = 'Sheet1',
-  format_func?: (instance: CSVData) => CSVData,
+  formatFunc?: (instance: CSVData) => CSVData,
 ): CSVData[] => {
   const headings: string[] = getHeaders(workbook, sheetName)
   // console.log(headings.length)
@@ -78,8 +79,8 @@ export const excelData2json = (
     }, {})
   })
 
-  if (format_func) {
-    return instances.map((instance) => format_func(instance))
+  if (formatFunc) {
+    return instances.map((instance) => formatFunc(instance))
   }
 
   return instances
@@ -92,15 +93,6 @@ export const excelData2json = (
  */
 export const csv2json = async (filePath: string, encoding = 'Shift_JIS'): Promise<unknown[]> => {
   return await csvStream2json(fs.createReadStream(filePath), encoding)
-  // return new Promise((resolve, reject) => {
-  //   const datas: any[] = []
-
-  //   fs.createReadStream(filePath)
-  //     .pipe(iconv.decodeStream('Shift_JIS'))
-  //     .pipe(iconv.encodeStream('utf-8'))
-  //     .pipe(csv().on('data', (data) => datas.push(JSON.parse(data))))
-  //     .on('end', () => resolve(datas))
-  // })
 }
 
 /**
@@ -112,12 +104,12 @@ export const csvStream2json = async (stream: NodeJS.ReadableStream, encoding = '
   return await new Promise<unknown[]>((resolve, reject) => {
     const datas: unknown[] = []
 
-    stream
+    void stream
       .pipe(iconv.decodeStream(encoding))
       .pipe(iconv.encodeStream('utf-8'))
       .pipe(
         csv()
-          .on('data', (data) => datas.push(Buffer.isBuffer(data) ? JSON.parse(data.toString()) : JSON.parse(data)))
+          .on('data', (data: Buffer) => datas.push(Buffer.isBuffer(data) ? JSON.parse(data.toString()) : JSON.parse(data)))
           // .on('done', (error) => (error ? reject(error) : resolve(datas)))
           .on('error', (error) => reject(error)),
       )
@@ -139,7 +131,7 @@ export const json2excel = async (
   templateFullPath = '',
   sheetName = 'Sheet1',
   converters?: Converters,
-  applyStyles?: (instances: any[], workbook: XlsxPopulate.Workbook, sheetName: string) => void,
+  applyStyles?: (instances: unknown[], workbook: XlsxPopulate.Workbook, sheetName: string) => void,
 ): Promise<string> => {
   logger.debug(`template path: ${templateFullPath}`)
   // console.log(instances[0])
@@ -166,7 +158,7 @@ export const json2excel = async (
     // console.table(csvArrays)
     const rowCount = instances.length
     const columnCount = headings.length
-    const sheet = workbook.sheet(sheetName)
+    const sheet = workbook.sheet(sheetName) ?? workbook.addSheet(sheetName)
 
     if (!fileIsNew && sheet.usedRange()) {
       sheet.usedRange()?.clear() // Excel上のデータを削除して。
@@ -200,6 +192,108 @@ export const json2excel = async (
   return toFullPath(outputFullPath)
 }
 
+export const createWorkbook = async (path?: string): Promise<XlsxPopulate.Workbook> => {
+  return (path != null) ? await XlsxPopulate.fromFileAsync(path) : await XlsxPopulate.fromBlankAsync()
+}
+
+
+export const toFileAsync = async (workbook: XlsxPopulate.Workbook, path: string): Promise<void> => {
+  logger.debug(path)
+
+  return await workbook.toFileAsync(path)
+
+  // return toFullPath(path)
+}
+
+
+
+/**
+ * 引数のJSON配列を、指定したテンプレートを用いて、指定したファイルに出力します。
+ * @param instances JSON配列
+ * @param templateFullPath 元にするテンプレートExcelのパス
+ * @param sheetName テンプレートExcelのシート名(シート名で出力する)
+ * @param applyStyles 出力時のExcelを書式フォーマットしたい場合に使用する。
+ */
+export const json2workbook: (arg: {
+  instances: unknown[];
+  workbook: XlsxPopulate.Workbook;
+  sheetName?: string;
+  converters?: Converters;
+  applyStyles?: (instances: unknown[], workbook: XlsxPopulate.Workbook, sheetName: string) => void;
+}) => XlsxPopulate.Workbook = ({
+  instances,
+  workbook,
+  sheetName = 'Sheet1',
+  converters,
+  applyStyles,
+}): XlsxPopulate.Workbook => {
+
+    // logger.debug(`template path: ${templateFullPath}`)
+    // console.log(instances[0])
+    // console.table(instances)
+
+    let headings: string[] = [] // ヘッダ名の配列
+    // let workbook: XlsxPopulate.Workbook
+    // const fileIsNew: boolean = templateFullPath === '' // templateが指定されない場合新規(fileIsNew = true)、そうでない場合テンプレファイルに出力
+    // if (fs.existsSync(outputFullPath)) {
+    //   workbook = await XlsxPopulate.fromFileAsync(outputFullPath)
+    //   if (instances.length > 0) {
+    //     headings = Object.keys(instances[0] as CSVData)
+    //   }
+    // } else
+    // if (!fileIsNew) {
+    // 指定された場合は、一行目の文字列群を使ってプロパティを作成する
+    // workbook = await XlsxPopulate.fromFileAsync(templateFullPath)
+    // headings = getHeaders(workbook, sheetName)
+    // } else {
+    // templateが指定されない場合は、空ファイルをつくり、オブジェクトのプロパティでダンプする。
+    // if (!workbook) {
+    // workbook = await XlsxPopulate.fromBlankAsync()
+    // }
+    // }
+
+    if (instances.length > 0) {
+      headings = Object.keys(instances[0] as CSVData)
+      const csvArrays: unknown[][] = createCsvArrays(headings, instances, converters)
+      // console.table(csvArrays)
+      const rowCount = instances.length
+      const columnCount = headings.length
+      const sheet = workbook.sheet(sheetName) ?? workbook.addSheet(sheetName)
+
+
+      // if (!fileIsNew && sheet.usedRange()) {
+      // sheet.usedRange()?.clear() // Excel上のデータを削除して。
+      // }
+      sheet.cell('A1').value(csvArrays as unknown as string)
+
+      // データがあるところには罫線を引く(細いヤツ)
+      const startCell = sheet.cell('A1')
+      const endCell = startCell.relativeCell(rowCount, columnCount - 1)
+
+      sheet.range(startCell, endCell).style('border', {
+        top: { style: 'hair' },
+        left: { style: 'hair' },
+        bottom: { style: 'hair' },
+        right: { style: 'hair' },
+      })
+
+      // よくある整形パタン。
+      // sheet.range(`C2:C${rowCount + 1}`).style('numberFormat', '@') // 書式: 文字(コレをやらないと、見かけ上文字だが、F2で抜けると数字になっちゃう)
+      // sheet.range(`E2:F${rowCount + 1}`).style('numberFormat', 'yyyy/mm/dd') // 書式: 日付
+      // sheet.range(`H2:H${rowCount + 1}`).style('numberFormat', 'yyyy/mm/dd hh:mm') // 書式: 日付+時刻
+
+      if (applyStyles) {
+        applyStyles(instances, workbook, sheetName)
+      }
+    }
+
+    // logger.debug(outputFullPath)
+    // await workbook.toFileAsync(outputFullPath)
+    //
+    // return toFullPath(outputFullPath)
+    return workbook
+  }
+
 /**
  * 引数のJSON配列を、指定したテンプレートを用いて、指定したファイルに出力します。
  * @param instances JSON配列
@@ -210,7 +304,7 @@ export const json2excelBlob = async (
   instances: unknown[],
   sheetName = 'Sheet1',
   converters?: Converters,
-  applyStyles?: (instances: any[], workbook: XlsxPopulate.Workbook, sheetName: string) => void,
+  applyStyles?: (instances: unknown[], workbook: XlsxPopulate.Workbook, sheetName: string) => void,
 ): Promise<Blob> => {
   let headings: string[] = [] // ヘッダ名の配列
   const workbook = await XlsxPopulate.fromBlankAsync()
@@ -219,7 +313,7 @@ export const json2excelBlob = async (
   }
 
   if (instances.length > 0) {
-    const csvArrays: any[][] = createCsvArrays(headings, instances, converters)
+    const csvArrays: unknown[][] = createCsvArrays(headings, instances, converters)
     // console.table(csvArrays)
     const rowCount = instances.length
     const columnCount = headings.length
