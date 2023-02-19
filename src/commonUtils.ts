@@ -313,7 +313,7 @@ export const json2excelBlob = async (
   }
 
   if (instances.length > 0) {
-    const csvArrays: any[][] = createCsvArrays(headings, instances, converters)
+    const csvArrays: unknown[][] = createCsvArrays(headings, instances, converters)
     // console.table(csvArrays)
     const rowCount = instances.length
     const columnCount = headings.length
