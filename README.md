@@ -17,9 +17,23 @@
 
 
 
+
+
+
 ## Revision history
 
 改訂履歴
+- 0.2.0
+    - Objectを引数にとるメソッドを作成。optionを渡せるようにし、startIndexなどで読み込み開始行を指定できるようにした
+      export const excel2json2: (props: ExcelProps) => Promise<unknown[]>
+      export const csv2json2: (props: CSVProps) => Promise<unknown[]>  
+    
+```typescript
+const results: unknown[] = await excel2json2({ filePath: 'target.xlsx', option: { startIndex: 3 } }) 
+// 4行目をヘッダ列として、その下から取得。(指定しないとstartIndex = 0 の意味)
+console.table(results)
+```
+
 - 0.1.11 内部のリファクタリングと、下記の対応
     - createWorkbook、toFileAsync、json2workbook メソッド追加
     - Excel書き出し時、指定したシート名がなかったときに、シートを追加する処理がなかったので追加。
