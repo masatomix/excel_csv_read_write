@@ -1,9 +1,10 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { getAndExtract } from '../src/utils'
-import { csv2json, json2excel, excel2json, excelStream2json } from '../src/commonUtils'
+import { csv2json, json2excel, excel2json, excelStream2json, excel2json2, csv2json2 } from '../src/commonUtils'
 import { assertBasicArray } from './utils'
 import { Converters, isCSVData } from '../src/data'
+import * as XlsxPopulate from 'xlsx-populate'
 
 
 describe('テスト', () => {
@@ -13,12 +14,16 @@ describe('テスト', () => {
   let csvPath = ''
   const baseDir: string = path.resolve('')
   let fullPath = ''
-  const excelPath = path.join('', 'excel出力' + '.xlsx')
-  const excelPath2 = path.join('', '13tokyoResult.xlsx')
-  const excelPath3 = path.join('', 'resultExcel3.xlsx')
+  const tmpDir = Date.now().toString()
+  const excelPath = path.join(tmpDir, 'excel出力' + '.xlsx')
+  const excelPath2 = path.join(tmpDir, '13tokyoResult.xlsx')
+  const excelPath3 = path.join(tmpDir, 'resultExcel3.xlsx')
+  const excelPath4 = path.join(tmpDir, 'resultExcel4.xlsx')
 
 
   beforeEach(async () => {
+
+    fs.existsSync(tmpDir) || fs.mkdirSync(tmpDir)
     csvPath = await getAndExtract(url)
     fullPath = path.join(baseDir, csvPath)
     await createExcel(fullPath, excelPath)
@@ -27,7 +32,9 @@ describe('テスト', () => {
     console.log(`csvPath: ${csvPath}`)
     console.log(`fullPath: ${fullPath}`)
     console.log(`excelPath: ${excelPath}`)
-    console.log(`excelPath: ${excelPath2}`)
+    console.log(`excelPath2: ${excelPath2}`)
+    console.log(`excelPath3: ${excelPath3}`)
+    console.log(`excelPath4: ${excelPath4}`)
   })
 
 
@@ -75,6 +82,40 @@ describe('テスト', () => {
     await json2excel(instances, excelPath3, '', 'Sheet1', converters)
   })
 
+  it('excel4', async () => {
+
+    const instances = (await csv2json(fullPath)).map(instance => Object.assign({}, instance, { now: new Date() }))
+    // プロパティごとに、変換メソッドをかませたケース
+    // nowとIdというプロパティには、変換methodを指定
+    const converters: Converters = {
+      住所CD: (value: string) => 'PREFIX:' + value,
+      郵便番号: (value: string) => '〒:' + value,
+    }
+
+    const excelFormatter = (instances: any[], workbook: XlsxPopulate.Workbook, sheetName: string) => {
+      const rowCount = instances.length
+      const sheet = workbook.sheet(sheetName)
+      sheet.range(`M2:M${rowCount + 1}`).style('numberFormat', 'yyyy/mm/dd hh:mm') // 書式: 日付+時刻
+      // よくある整形パタン。
+      sheet.range(`C2:C${rowCount + 1}`).style('numberFormat', '@') // 書式: 文字(コレをやらないと、見かけ上文字だが、F2で抜けると数字になっちゃう)
+      // sheet.range(`E2:F${rowCount + 1}`).style('numberFormat', 'yyyy/mm/dd') // 書式: 日付
+      // sheet.range(`H2:H${rowCount + 1}`).style('numberFormat', 'yyyy/mm/dd hh:mm') // 書式: 日付+時刻
+    }
+    await json2excel(instances, excelPath4, '', 'Sheet1', converters, excelFormatter)
+  })
+
+  it('excel5', async () => {
+    const results: unknown[] = await excel2json2({ filePath: excelPath, option: { startIndex: 1 } })
+    console.table(results.filter((result, index) => index == 10))
+
+
+    const results2: unknown[] = await csv2json2({ filePath: csvPath })
+    console.table(results2.filter((result2, index) => index == 10))
+
+  })
+
+
+
   // it('excel入力', async () => {
   //   await createExcel(fullPath,excelPath)
 
@@ -84,11 +125,15 @@ describe('テスト', () => {
   //   console.log(filepath)
   // })
 
-  afterEach(async () => {
-    !fs.existsSync(fullPath) ?? fs.unlinkSync(fullPath)
-    !fs.existsSync(excelPath) ?? fs.unlinkSync(excelPath)
-    !fs.existsSync(excelPath2) ?? fs.unlinkSync(excelPath2)
-    !fs.existsSync(excelPath3) ?? fs.unlinkSync(excelPath3)
+  afterEach(() => {
+    // !fs.existsSync(fullPath) || fs.unlinkSync(fullPath)
+    // !fs.existsSync(excelPath) || fs.unlinkSync(excelPath)
+    // !fs.existsSync(excelPath2) || fs.unlinkSync(excelPath2)
+    // !fs.existsSync(excelPath3) || fs.unlinkSync(excelPath3)
+    // !fs.existsSync(excelPath4) || fs.unlinkSync(excelPath4)
+    // !fs.existsSync(tmpDir) || fs.rmdirSync(tmpDir)
+    !fs.existsSync(tmpDir) || fs.rmdirSync(tmpDir, { recursive: true })
+
   })
 
   /**
