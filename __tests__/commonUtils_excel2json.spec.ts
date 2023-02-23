@@ -105,8 +105,8 @@ describe('テスト', () => {
   })
 
   it('excel5', async () => {
-    const results: unknown[] = await excel2json2({ filePath: excelPath, option: { startIndex: 1 } })
-    console.table(results.filter((result, index) => index == 10))
+    const results: unknown[] = await excel2json2({ filePath: excelPath, option: { startIndex: 3 } })
+    console.table(results.filter((result, index) => index < 10))
 
 
     const results2: unknown[] = await csv2json2({ filePath: csvPath })

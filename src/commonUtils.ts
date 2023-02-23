@@ -105,7 +105,7 @@ export const excelData2json = (
 ): CSVData[] => {
   const headings: string[] = getHeaders(workbook, sheetName, option)
   // console.log(headings.length)
-  const valuesArray: unknown[][] = getValuesArray(workbook, sheetName)
+  const valuesArray: unknown[][] = getValuesArray(workbook, sheetName, option)
 
   const instances = valuesArray.map((values: unknown[]) => {
     return values.reduce((box: CSVData, column: unknown, index: number) => {
@@ -455,7 +455,8 @@ export const getHeaders = (workbook: XlsxPopulate.Workbook, sheetName: string,
 
 
 // XlsxPopulate
-export const getValuesArray = (workbook: XlsxPopulate.Workbook, sheetName: string): unknown[][] => {
+export const getValuesArray = (workbook: XlsxPopulate.Workbook, sheetName: string,
+  option: Option = { startIndex: 0 }): unknown[][] => {
 
   const sheet = workbook.sheet(sheetName)
   if (sheet.usedRange()) {
@@ -463,7 +464,10 @@ export const getValuesArray = (workbook: XlsxPopulate.Workbook, sheetName: strin
     const valuesArray: unknown[][] = sheet.usedRange()!.value()
     valuesArray.shift() // 先頭除去
 
-    return valuesArray
+    const tmp = option.startIndex ?? 0
+    const result = valuesArray.splice(tmp, Number.MAX_VALUE)
+
+    return result
   }
 
   return new Array([])
