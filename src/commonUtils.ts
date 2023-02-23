@@ -10,6 +10,40 @@ import { getLogger } from './logger'
 
 const logger = getLogger('main')
 
+type Option = {
+  startIndex?: number
+}
+
+type ExcelProps = {
+  filePath: string,
+  sheetName?: string,
+  formatFunc?: (instance: CSVData) => CSVData,
+  option?: Option
+}
+
+type CSVProps = {
+  filePath: string,
+  encoding?: string
+}
+
+
+export const excel2json2: (props: ExcelProps) => Promise<unknown[]>
+  = async ({
+    filePath,
+    sheetName = 'Sheet1',
+    formatFunc,
+    option = { startIndex: 0 }
+  }): Promise<unknown[]> => {
+    return await excel2json(filePath, sheetName, formatFunc, option)
+  }
+
+
+export const csv2json2: (props: CSVProps) => Promise<unknown[]>
+  = async ({ filePath, encoding = 'Shift_JIS' }): Promise<unknown[]> => {
+    return await csv2json(filePath, encoding)
+  }
+
+
 /**
  * Excelファイルを読み込み、各行をデータとして配列で返すメソッド。
  * @param path Excelファイルパス
@@ -21,6 +55,7 @@ export const excel2json = async (
   inputFullPath: string,
   sheetName = 'Sheet1',
   formatFunc?: (instance: CSVData) => CSVData,
+  option?: Option
 ): Promise<unknown[]> => {
   // const promise = new JSZip.external.Promise<Buffer>((resolve, reject) => {
   //   fs.readFile(inputFullPath, (err, data) => (err ? reject(err) : resolve(data)))
@@ -31,7 +66,7 @@ export const excel2json = async (
 
   const stream = fs.createReadStream(inputFullPath)
 
-  return await excelStream2json(stream, sheetName, formatFunc)
+  return await excelStream2json(stream, sheetName, formatFunc, option)
 }
 
 /**
@@ -44,6 +79,7 @@ export const excelStream2json = async (
   stream: NodeJS.ReadableStream,
   sheetName = 'Sheet1',
   formatFunc?: (instance: CSVData) => CSVData,
+  option?: Option
 ): Promise<unknown[]> => {
   // cf:https://qiita.com/masakura/items/5683e8e3e655bfda6756
   const promise = new JSZip.external.Promise<Buffer>((resolve, _) => {
@@ -51,7 +87,7 @@ export const excelStream2json = async (
     stream.on('data', (data: Buffer) => buffers.push(data)).on('end', () => resolve(Buffer.concat(buffers)))
   }).then(async (buf: Buffer) => await XlsxPopulate.fromDataAsync(buf))
 
-  return excelData2json(await promise, sheetName, formatFunc)
+  return excelData2json(await promise, sheetName, formatFunc, option)
 }
 
 
@@ -65,10 +101,11 @@ export const excelData2json = (
   workbook: XlsxPopulate.Workbook,
   sheetName = 'Sheet1',
   formatFunc?: (instance: CSVData) => CSVData,
+  option?: Option
 ): CSVData[] => {
-  const headings: string[] = getHeaders(workbook, sheetName)
+  const headings: string[] = getHeaders(workbook, sheetName, option)
   // console.log(headings.length)
-  const valuesArray: unknown[][] = getValuesArray(workbook, sheetName)
+  const valuesArray: unknown[][] = getValuesArray(workbook, sheetName, option)
 
   const instances = valuesArray.map((values: unknown[]) => {
     return values.reduce((box: CSVData, column: unknown, index: number) => {
@@ -397,13 +434,20 @@ export const toBoolean = function (boolStr: string | boolean): boolean {
   return boolStr.toLowerCase() === 'true'
 }
 
+
 // XlsxPopulate
-export const getHeaders = (workbook: XlsxPopulate.Workbook, sheetName: string): string[] => {
+export const getHeaders = (workbook: XlsxPopulate.Workbook, sheetName: string,
+  option: Option = { startIndex: 0 }): string[] => {
   const sheet = workbook.sheet(sheetName)
 
+  const tmp = option.startIndex ?? 0
   if (sheet.usedRange()) {
+    const headers = sheet.usedRange()?.value()[tmp] as string[]
+
+    return headers
+
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return sheet.usedRange()!.value().shift() as string[]
+    // return sheet.usedRange()!.value().shift() as string[]
   }
 
   return []
@@ -411,7 +455,8 @@ export const getHeaders = (workbook: XlsxPopulate.Workbook, sheetName: string): 
 
 
 // XlsxPopulate
-export const getValuesArray = (workbook: XlsxPopulate.Workbook, sheetName: string): unknown[][] => {
+export const getValuesArray = (workbook: XlsxPopulate.Workbook, sheetName: string,
+  option: Option = { startIndex: 0 }): unknown[][] => {
 
   const sheet = workbook.sheet(sheetName)
   if (sheet.usedRange()) {
@@ -419,7 +464,10 @@ export const getValuesArray = (workbook: XlsxPopulate.Workbook, sheetName: strin
     const valuesArray: unknown[][] = sheet.usedRange()!.value()
     valuesArray.shift() // 先頭除去
 
-    return valuesArray
+    const tmp = option.startIndex ?? 0
+    const result = valuesArray.splice(tmp, Number.MAX_VALUE)
+
+    return result
   }
 
   return new Array([])
