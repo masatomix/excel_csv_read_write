@@ -11,18 +11,20 @@ import { getLogger } from './logger'
 const logger = getLogger('main')
 
 type Option = {
-  startIndex?: number
+  startIndex?: number // データを取得する開始位置
+  useHeader?: boolean // データの先頭行をヘッダ行とするか:true / データ行とするか: false
+  key?: 'columnIndex' // オブジェクトのキーを、列番号とする場合に指定。指定すると、userHeaderは
 }
 
 type ExcelProps = {
-  filePath: string,
-  sheetName?: string,
-  formatFunc?: (instance: CSVData) => CSVData,
+  filePath: string
+  sheetName?: string
+  formatFunc?: (instance: CSVData) => CSVData
   option?: Option
 }
 
 type CSVProps = {
-  filePath: string,
+  filePath: string
   encoding?: string
 }
 
@@ -32,7 +34,7 @@ export const excel2json2: (props: ExcelProps) => Promise<unknown[]>
     filePath,
     sheetName = 'Sheet1',
     formatFunc,
-    option = { startIndex: 0 }
+    option,
   }): Promise<unknown[]> => {
     return await excel2json(filePath, sheetName, formatFunc, option)
   }
@@ -103,18 +105,58 @@ export const excelData2json = (
   formatFunc?: (instance: CSVData) => CSVData,
   option?: Option
 ): CSVData[] => {
-  const headings: string[] = getHeaders(workbook, sheetName, option)
   // console.log(headings.length)
-  const valuesArray: unknown[][] = getValuesArray(workbook, sheetName, option)
+  const valuesArray: unknown[][] = getValuesArray(workbook, sheetName)
 
-  const instances = valuesArray.map((values: unknown[]) => {
-    return values.reduce((box: CSVData, column: unknown, index: number) => {
-      // 列単位で処理してきて、ヘッダの名前で代入する。
-      box[headings[index]] = column
+  return data2json(valuesArray, formatFunc, option)
+}
 
-      return box
-    }, {})
-  })
+export const data2json = (
+  allValuesArray: unknown[][],
+  formatFunc?: (instance: CSVData) => CSVData,
+  option?: Option,
+): CSVData[] => {
+  const tmpAllValuesArray = [...[...allValuesArray]]
+
+  const startIndex = option?.startIndex ?? 0
+  const valuesArray = tmpAllValuesArray.splice(startIndex, Number.MAX_VALUE)
+
+  // option なければヘッダ使うのでtrue
+  // ある場合は、
+  //   useHeader =true か、useHeaderがない場合はtrue
+  // もしくは
+  //   key !==='columnIndex' か、がないばあいはtrue
+  const useHeader = option?.useHeader ?? option?.key !== 'columnIndex' ?? true // optionがなければtrue/ あればuseHeader値があるかみて返す、useHeader値がなかったらtrue
+  console.log(`useHeader: ${String(useHeader)}`)
+  // header処理
+  const headings: string[] = useHeader ? getHeaders2(valuesArray) : []
+  if (useHeader) {
+    valuesArray.shift()
+  }
+  // header処理
+
+  let instances: CSVData[]
+
+  const key = option?.key ?? ''
+  if (key === 'columnIndex' || !useHeader) {
+    instances = valuesArray.map((values: unknown[]) => {
+      return values.reduce((box: CSVData, column: unknown, index: number) => {
+        // 列単位で処理してきて、ヘッダの名前で代入する。
+        box[index] = column
+
+        return box
+      }, {})
+    })
+  } else {
+    instances = valuesArray.map((values: unknown[]) => {
+      return values.reduce((box: CSVData, column: unknown, index: number) => {
+        // 列単位で処理してきて、ヘッダの名前で代入する。
+        box[headings[index]] = column
+
+        return box
+      }, {})
+    })
+  }
 
   if (formatFunc) {
     return instances.map((instance) => formatFunc(instance))
@@ -243,7 +285,6 @@ export const toFileAsync = async (workbook: XlsxPopulate.Workbook, path: string)
 }
 
 
-
 /**
  * 引数のJSON配列を、指定したテンプレートを用いて、指定したファイルに出力します。
  * @param instances JSON配列
@@ -264,7 +305,6 @@ export const json2workbook: (arg: {
   converters,
   applyStyles,
 }): XlsxPopulate.Workbook => {
-
     // logger.debug(`template path: ${templateFullPath}`)
     // console.log(instances[0])
     // console.table(instances)
@@ -296,7 +336,6 @@ export const json2workbook: (arg: {
       const rowCount = instances.length
       const columnCount = headings.length
       const sheet = workbook.sheet(sheetName) ?? workbook.addSheet(sheetName)
-
 
       // if (!fileIsNew && sheet.usedRange()) {
       // sheet.usedRange()?.clear() // Excel上のデータを削除して。
@@ -434,10 +473,12 @@ export const toBoolean = function (boolStr: string | boolean): boolean {
   return boolStr.toLowerCase() === 'true'
 }
 
-
 // XlsxPopulate
-export const getHeaders = (workbook: XlsxPopulate.Workbook, sheetName: string,
-  option: Option = { startIndex: 0 }): string[] => {
+export const getHeaders = (
+  workbook: XlsxPopulate.Workbook,
+  sheetName: string,
+  option: Option = { startIndex: 0 },
+): string[] => {
   const sheet = workbook.sheet(sheetName)
 
   const tmp = option.startIndex ?? 0
@@ -453,21 +494,27 @@ export const getHeaders = (workbook: XlsxPopulate.Workbook, sheetName: string,
   return []
 }
 
+export const getHeaders2 = (instanceArray: unknown[][]): string[] => instanceArray[0] as string[]
 
 // XlsxPopulate
-export const getValuesArray = (workbook: XlsxPopulate.Workbook, sheetName: string,
-  option: Option = { startIndex: 0 }): unknown[][] => {
-
+export const getValuesArray = (workbook: XlsxPopulate.Workbook, sheetName: string): unknown[][] => {
   const sheet = workbook.sheet(sheetName)
   if (sheet.usedRange()) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const valuesArray: unknown[][] = sheet.usedRange()!.value()
-    valuesArray.shift() // 先頭除去
 
-    const tmp = option.startIndex ?? 0
-    const result = valuesArray.splice(tmp, Number.MAX_VALUE)
+    //    // header/key に関わらずデータ削って返す
 
-    return result
+    return valuesArray
+    //
+
+    // if (option?.key !== 'columnIndex') {
+    //   valuesArray.shift() // 先頭除去
+    // }
+    // const tmp = option.startIndex ?? 0
+    // const result = valuesArray.splice(tmp, Number.MAX_VALUE)
+
+    // return result
   }
 
   return new Array([])
