@@ -13,7 +13,6 @@ const logger = getLogger('main')
 type Option = {
   startIndex?: number // データを取得する開始位置
   useHeader?: boolean // データの先頭行をヘッダ行とするか:true / データ行とするか: false
-  key?: 'columnIndex' // オブジェクトのキーを、列番号とする場合に指定。指定すると、userHeaderは
 }
 
 type ExcelProps = {
@@ -126,7 +125,7 @@ export const data2json = (
   //   useHeader =true か、useHeaderがない場合はtrue
   // もしくは
   //   key !==='columnIndex' か、がないばあいはtrue
-  const useHeader = option?.useHeader ?? option?.key !== 'columnIndex' ?? true // optionがなければtrue/ あればuseHeader値があるかみて返す、useHeader値がなかったらtrue
+  const useHeader = option?.useHeader ?? true // optionがなければtrue/ あればuseHeader値があるかみて返す、useHeader値がなかったらtrue
   console.log(`useHeader: ${String(useHeader)}`)
   // header処理
   const headings: string[] = useHeader ? getHeaders2(valuesArray) : []
@@ -135,28 +134,25 @@ export const data2json = (
   }
   // header処理
 
-  let instances: CSVData[]
+  const headerLogic = (box: CSVData, column: unknown, index: number) => {
+    // 列単位で処理してきて、ヘッダの名前で代入する。
+    box[headings[index]] = column
 
-  const key = option?.key ?? ''
-  if (key === 'columnIndex' || !useHeader) {
-    instances = valuesArray.map((values: unknown[]) => {
-      return values.reduce((box: CSVData, column: unknown, index: number) => {
-        // 列単位で処理してきて、ヘッダの名前で代入する。
-        box[index] = column
-
-        return box
-      }, {})
-    })
-  } else {
-    instances = valuesArray.map((values: unknown[]) => {
-      return values.reduce((box: CSVData, column: unknown, index: number) => {
-        // 列単位で処理してきて、ヘッダの名前で代入する。
-        box[headings[index]] = column
-
-        return box
-      }, {})
-    })
+    return box
   }
+
+  const indexLogic = (box: CSVData, column: unknown, index: number) => {
+    // 列単位で処理してきて、ヘッダの名前で代入する。
+    box[index] = column
+
+    return box
+  }
+
+  const reduceLogic = useHeader ? headerLogic : indexLogic
+
+  const instances = valuesArray.map((values: unknown[]) => {
+    return values.reduce(reduceLogic, {})
+  })
 
   if (formatFunc) {
     return instances.map((instance) => formatFunc(instance))
@@ -501,20 +497,7 @@ export const getValuesArray = (workbook: XlsxPopulate.Workbook, sheetName: strin
   const sheet = workbook.sheet(sheetName)
   if (sheet.usedRange()) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const valuesArray: unknown[][] = sheet.usedRange()!.value()
-
-    //    // header/key に関わらずデータ削って返す
-
-    return valuesArray
-    //
-
-    // if (option?.key !== 'columnIndex') {
-    //   valuesArray.shift() // 先頭除去
-    // }
-    // const tmp = option.startIndex ?? 0
-    // const result = valuesArray.splice(tmp, Number.MAX_VALUE)
-
-    // return result
+    return sheet.usedRange()!.value()
   }
 
   return new Array([])

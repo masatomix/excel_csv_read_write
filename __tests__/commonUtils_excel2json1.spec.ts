@@ -11,7 +11,6 @@ describe('テスト', () => {
   })
   it('excel6', async () => {
 
-
     const datas = [
       ['住所CD', '都道府県CD'],
       ['1', '13'],
@@ -47,28 +46,17 @@ describe('テスト', () => {
     console.table(
       data2json(datas, undefined, {
         startIndex: 1,
-        key: 'columnIndex',
       }),
     )
 
-    console.log('----')
-    console.table(
-      data2json(datas, undefined, {
-        key: 'columnIndex',
-        useHeader: false,
-      }),
-    )
-
+    console.log('とにかく1行目から取り込み、ヘッダは0,1')
     console.table(
       data2json(datas, undefined, {
         useHeader: false,
       }),
     )
-    console.table(
-      data2json(datas, undefined, {
-        key: 'columnIndex'
-      }),
-    )
+
+
   })
 
 
