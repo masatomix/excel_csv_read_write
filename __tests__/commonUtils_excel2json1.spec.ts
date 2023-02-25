@@ -12,11 +12,11 @@ describe('テスト', () => {
   it('excel6', async () => {
 
     const datas = [
-      ['住所CD', '都道府県CD'],
-      ['1', '13'],
-      ['2', '13'],
-      ['3', '13'],
-      ['4', '13'],
+      ['住所CD', '都道府県CD', 'key3', 'key4', 'key5'],
+      ['1', '13', 'value1_3', 'value1_4', 'value1_5'],
+      ['2', '13', 'value2_3', 'value2_4', 'value2_5'],
+      ['3', '13', 'value3_3', 'value3_4', 'value3_5'],
+      ['4', '13', 'value4_3', 'value4_4', 'value4_5'],
     ]
     console.log('1.ヘッダが住所CDになっている')
     console.table(data2json(datas, undefined))
@@ -55,6 +55,14 @@ describe('テスト', () => {
         useHeader: false,
       }),
     )
+
+    console.log('useHeaderがfalseの時は列番号(0始まり)のstart/endを指定して抽出できる')
+    console.table(
+      data2json(datas, undefined, {
+        useHeader: false,
+        columnStartIndex: 2,
+        columnEndIndex: 4
+      }))
 
 
   })

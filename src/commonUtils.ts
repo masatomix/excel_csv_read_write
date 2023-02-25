@@ -13,6 +13,8 @@ const logger = getLogger('main')
 type Option = {
   startIndex?: number // データを取得する開始位置
   useHeader?: boolean // データの先頭行をヘッダ行とするか:true / データ行とするか: false
+  columnStartIndex?: number,
+  columnEndIndex?: number
 }
 
 type ExcelProps = {
@@ -126,13 +128,18 @@ export const data2json = (
   // もしくは
   //   key !==='columnIndex' か、がないばあいはtrue
   const useHeader = option?.useHeader ?? true // optionがなければtrue/ あればuseHeader値があるかみて返す、useHeader値がなかったらtrue
-  console.log(`useHeader: ${String(useHeader)}`)
+  // console.log(`useHeader: ${String(useHeader)}`)
   // header処理
-  const headings: string[] = useHeader ? getHeaders2(valuesArray) : []
+  const headings = useHeader ? getHeaders2(valuesArray) : []
+
   if (useHeader) {
     valuesArray.shift()
   }
   // header処理
+
+  // useHeaderの時しか、使わないけど。
+  const columnStartIndex = option?.columnStartIndex ?? 0
+  const columnEndIndex = option?.columnEndIndex ?? Number.MAX_VALUE
 
   const headerLogic = (box: CSVData, column: unknown, index: number) => {
     // 列単位で処理してきて、ヘッダの名前で代入する。
@@ -143,7 +150,9 @@ export const data2json = (
 
   const indexLogic = (box: CSVData, column: unknown, index: number) => {
     // 列単位で処理してきて、ヘッダの名前で代入する。
-    box[index] = column
+    if (index >= columnStartIndex && index <= columnEndIndex) {
+      box[index] = column
+    }
 
     return box
   }
