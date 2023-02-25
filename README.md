@@ -19,14 +19,16 @@
 
 
 
-
 ## Revision history
 
 改訂履歴
+- 0.2.1 Optionに、columnStartIndex: number,columnEndIndex: number, useHeader: boolean を導入
+    - useHeaderがfalseの時は、1行目をヘッダとして扱うのでなくデータとして扱うように。レコードのプロパティはIndex番号にする(default値はtrue)
+    - useHeaderがfalseの時に、列番号のstart/end を指定して抽出できるようにした(0始まり、どちらかだけの指定も可能)
 - 0.2.0
-    - Objectを引数にとるメソッドを作成。optionを渡せるようにし、startIndexなどで読み込み開始行を指定できるようにした
-      export const excel2json2: (props: ExcelProps) => Promise<unknown[]>
-      export const csv2json2: (props: CSVProps) => Promise<unknown[]>  
+    - Objectを引数にとるメソッドを作成。optionを渡せるようにし、startIndexなどで読み込み開始行を指定できるようにした <br />
+      export const excel2json2: (props: ExcelProps) => Promise<unknown[]> <br />
+      export const csv2json2: (props: CSVProps) => Promise<unknown[]>  <br />
     
 ```typescript
 const results: unknown[] = await excel2json2({ filePath: 'target.xlsx', option: { startIndex: 3 } }) 

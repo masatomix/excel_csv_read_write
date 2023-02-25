@@ -11,9 +11,9 @@ import { getLogger } from './logger'
 const logger = getLogger('main')
 
 type Option = {
-  startIndex?: number // データを取得する開始位置
-  useHeader?: boolean // データの先頭行をヘッダ行とするか:true / データ行とするか: false
-  columnStartIndex?: number,
+  startIndex?: number // データ取得の開始位置(0始まり)
+  useHeader?: boolean // 1行目をヘッダとして扱うのでなくデータとして扱うように。レコードのプロパティはIndex番号にする(default値はtrue)
+  columnStartIndex?: number // 列番号のstart/end を指定して抽出できる(0始まり、start/end どちらかだけの指定も可能)。useHeader=trueの時は指定しても無視
   columnEndIndex?: number
 }
 
