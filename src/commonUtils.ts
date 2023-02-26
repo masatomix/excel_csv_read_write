@@ -233,7 +233,7 @@ export const json2excel = async (
     // templateが指定されない場合は、空ファイルをつくり、オブジェクトのプロパティでダンプする。
     workbook = await XlsxPopulate.fromBlankAsync()
     if (instances.length > 0) {
-      headings = Object.keys(instances[0] as CSVData)
+      headings = createHeaderFromInstances(instances)
     }
   }
 
@@ -320,7 +320,7 @@ export const json2workbook: (arg: {
     // if (fs.existsSync(outputFullPath)) {
     //   workbook = await XlsxPopulate.fromFileAsync(outputFullPath)
     //   if (instances.length > 0) {
-    //     headings = Object.keys(instances[0] as CSVData)
+    //     headings = createHeaderFromInstances(instances)
     //   }
     // } else
     // if (!fileIsNew) {
@@ -335,7 +335,7 @@ export const json2workbook: (arg: {
     // }
 
     if (instances.length > 0) {
-      headings = Object.keys(instances[0] as CSVData)
+      headings = createHeaderFromInstances(instances)
       const csvArrays: unknown[][] = createCsvArrays(headings, instances, converters)
       // console.table(csvArrays)
       const rowCount = instances.length
@@ -390,7 +390,7 @@ export const json2excelBlob = async (
   let headings: string[] = [] // ヘッダ名の配列
   const workbook = await XlsxPopulate.fromBlankAsync()
   if (instances.length > 0) {
-    headings = Object.keys(instances[0] as CSVData)
+    headings = createHeaderFromInstances(instances)
   }
 
   if (instances.length > 0) {
@@ -470,6 +470,10 @@ export const dateFromSn = (serialNumber: number): Date => {
   return XlsxPopulate.numberToDate(serialNumber)
 }
 
+export const date2Sn = (date: Date): number => {
+  return XlsxPopulate.dateToNumber(date)
+}
+
 export const toBoolean = function (boolStr: string | boolean): boolean {
   if (typeof boolStr === 'boolean') {
     return boolStr
@@ -499,6 +503,11 @@ export const getHeaders = (
   return []
 }
 
+/**
+ * 二次元配列の先頭行をとって、それをヘッダ列として返す
+ * @param instanceArray 
+ * @returns 
+ */
 export const getHeaders2 = (instanceArray: unknown[][]): string[] => instanceArray[0] as string[]
 
 // XlsxPopulate
@@ -511,3 +520,21 @@ export const getValuesArray = (workbook: XlsxPopulate.Workbook, sheetName: strin
 
   return new Array([])
 }
+
+
+export const createHeaderFromInstances = (instances: unknown[]): string[] => {
+  // const headings = Object.keys(instances[0] as CSVData)
+  const headings = instances.reduce<string[]>((box, current) => {
+    const currentKeys = Object.keys(current as CSVData)
+    for (const currentKey of currentKeys) {
+      if (!box.includes(currentKey)) {
+        box.push(currentKey)
+      }
+    }
+
+    return box
+  }, [])
+
+  return headings
+}
+
