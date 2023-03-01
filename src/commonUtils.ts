@@ -302,13 +302,17 @@ export const json2workbook: (arg: {
   workbook: XlsxPopulate.Workbook;
   sheetName?: string;
   converters?: Converters;
+  headerConverter?: (headings: string[]) => unknown[]
   applyStyles?: (instances: unknown[], workbook: XlsxPopulate.Workbook, sheetName: string) => void;
+  columnSortOrder?: (a: string, b: string) => number
 }) => XlsxPopulate.Workbook = ({
   instances,
   workbook,
   sheetName = 'Sheet1',
   converters,
+  headerConverter,
   applyStyles,
+  columnSortOrder,
 }): XlsxPopulate.Workbook => {
     // logger.debug(`template path: ${templateFullPath}`)
     // console.log(instances[0])
@@ -336,7 +340,7 @@ export const json2workbook: (arg: {
 
     if (instances.length > 0) {
       headings = createHeaderFromInstances(instances)
-      const csvArrays: unknown[][] = createCsvArrays(headings, instances, converters)
+      const csvArrays: unknown[][] = createCsvArrays(headings, instances, converters, headerConverter, columnSortOrder)
       // console.table(csvArrays)
       const rowCount = instances.length
       const columnCount = headings.length
@@ -433,10 +437,11 @@ const toFullPath = (str: string): string => (path.isAbsolute(str) ? str : path.j
 
 
 // 自前実装
-const createCsvArrays = (headings: string[], instances: unknown[], converters?: Converters): unknown[][] => {
+const createCsvArrays = (headings: string[], instances: unknown[], converters?: Converters, headerConverter?: (headings: string[]) => unknown[], columnSortOrder?: (a: string, b: string) => number): unknown[][] => {
   const csvArrays: unknown[][] = instances.map((tmpInstance: unknown): unknown[] => {
     const instance = tmpInstance as CSVData
     // console.log(instance)
+    if (columnSortOrder) { headings.sort(columnSortOrder) }
     const csvArray = headings.reduce((box: unknown[], header: string): unknown[] => {
       // console.log(`${instance[header]}: ${instance[header] instanceof Object}`)
       // console.log(converters)
@@ -457,7 +462,8 @@ const createCsvArrays = (headings: string[], instances: unknown[], converters?: 
 
     return csvArray
   })
-  csvArrays.unshift(headings)
+
+  headerConverter ? csvArrays.unshift(headerConverter(headings)) : csvArrays.unshift(headings)
 
   return csvArrays
 }
