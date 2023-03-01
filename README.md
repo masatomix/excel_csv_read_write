@@ -22,6 +22,9 @@
 ## Revision history
 
 改訂履歴
+- 0.2.3 json2workbook メソッドに以下のパラメタを追加。元のヘッダ名で指定したロジックでソートしたり、ヘッダを変換できるようにした。
+    - headerConverter?: (headings: string[]) => unknown[] // ヘッダを変換する関数
+    - columnSortOrder?: (a: string, b: string) => number // 列をソートする関数
 - 0.2.2 JSONデータをExcelに出力する際、一つ目のJSONデータからヘッダ列を作っていたけど、全データのプロパティを足し合わすことにした
 - 0.2.1 Optionに、columnStartIndex: number,columnEndIndex: number, useHeader: boolean を導入
     - useHeaderがfalseの時は、1行目をヘッダとして扱うのでなくデータとして扱うように。レコードのプロパティはIndex番号にする(default値はtrue)
